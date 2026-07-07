@@ -1,12 +1,36 @@
 import { useState, type FormEvent } from 'react'
+import Button from '../components/Button'
+import Input from '../components/Input'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+
+  function validate(): boolean {
+    let valid = true
+    setEmailError('')
+    setPasswordError('')
+
+    if (!email) {
+      setEmailError('Email is required')
+      valid = false
+    }
+
+    if (!password) {
+      setPasswordError('Password is required')
+      valid = false
+    }
+
+    return valid
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    console.log('Login attempt:', { email, password })
+    if (validate()) {
+      console.log('Login attempt:', { email, password })
+    }
   }
 
   return (
@@ -16,38 +40,25 @@ export default function LoginPage() {
           Admin Login
         </h1>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
-            />
-          </div>
-          <button
-            type="submit"
-            className="mt-2 rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
-          >
+          <Input
+            label="Email"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={emailError}
+          />
+          <Input
+            label="Password"
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            error={passwordError}
+          />
+          <Button type="submit" className="mt-2">
             Sign In
-          </button>
+          </Button>
         </form>
       </div>
     </div>

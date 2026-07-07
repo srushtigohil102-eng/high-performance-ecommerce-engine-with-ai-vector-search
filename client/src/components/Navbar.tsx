@@ -1,43 +1,71 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
 export default function Navbar() {
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  function linkClass({ isActive }: { isActive: boolean }) {
+    return `text-sm ${isActive ? 'font-semibold text-gray-900' : 'text-gray-600 hover:text-gray-900'}`
+  }
+
+  function closeMobile() {
+    setMobileOpen(false)
+  }
+
   return (
     <nav className="border-b border-gray-200 bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-        <NavLink to="/" className="text-xl font-bold text-gray-900">
+        <NavLink to="/" className="text-xl font-bold text-gray-900" onClick={closeMobile}>
           ShopName
         </NavLink>
-        <div className="flex items-center gap-6">
-          <NavLink
-            to="/"
-            end
-            className={({ isActive }) =>
-              `text-sm ${isActive ? 'font-semibold text-gray-900' : 'text-gray-600 hover:text-gray-900'}`
-            }
-          >
+
+        {/* Desktop nav */}
+        <div className="hidden items-center gap-6 md:flex">
+          <NavLink to="/" end className={linkClass}>
             Home
           </NavLink>
-          <NavLink
-            to="/cart"
-            className={({ isActive }) =>
-              `text-sm ${isActive ? 'font-semibold text-gray-900' : 'text-gray-600 hover:text-gray-900'}`
-            }
-          >
+          <NavLink to="/cart" className={linkClass}>
             Cart
             <span className="ml-1 inline-flex items-center justify-center rounded-full bg-gray-900 px-1.5 py-0.5 text-xs font-medium text-white">
               0
             </span>
           </NavLink>
-          <NavLink
-            to="/login"
-            className={({ isActive }) =>
-              `text-sm ${isActive ? 'font-semibold text-gray-900' : 'text-gray-600 hover:text-gray-900'}`
-            }
-          >
+          <NavLink to="/login" className={linkClass}>
             Login
           </NavLink>
         </div>
+
+        {/* Hamburger button */}
+        <button
+          type="button"
+          className="flex flex-col gap-1.5 md:hidden"
+          onClick={() => setMobileOpen((prev) => !prev)}
+          aria-label="Toggle navigation menu"
+          aria-expanded={mobileOpen}
+        >
+          <span className={`block h-0.5 w-6 bg-gray-900 transition-transform ${mobileOpen ? 'translate-y-2 rotate-45' : ''}`} />
+          <span className={`block h-0.5 w-6 bg-gray-900 transition-opacity ${mobileOpen ? 'opacity-0' : ''}`} />
+          <span className={`block h-0.5 w-6 bg-gray-900 transition-transform ${mobileOpen ? '-translate-y-2 -rotate-45' : ''}`} />
+        </button>
       </div>
+
+      {/* Mobile dropdown */}
+      {mobileOpen && (
+        <div className="flex flex-col gap-2 border-t border-gray-200 px-4 py-4 md:hidden">
+          <NavLink to="/" end className={linkClass} onClick={closeMobile}>
+            Home
+          </NavLink>
+          <NavLink to="/cart" className={linkClass} onClick={closeMobile}>
+            Cart
+            <span className="ml-1 inline-flex items-center justify-center rounded-full bg-gray-900 px-1.5 py-0.5 text-xs font-medium text-white">
+              0
+            </span>
+          </NavLink>
+          <NavLink to="/login" className={linkClass} onClick={closeMobile}>
+            Login
+          </NavLink>
+        </div>
+      )}
     </nav>
   )
 }
