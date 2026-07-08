@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { CartProvider } from './context/CartContext'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './pages/HomePage'
@@ -10,7 +11,8 @@ import AdminPage from './pages/AdminPage'
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <CartProvider>
+        <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/product/:id" element={<ProductDetailPage />} />
@@ -20,7 +22,8 @@ export default function App() {
             <Route path="/admin" element={<AdminPage />} />
           </Route>
         </Route>
-      </Routes>
+        </Routes>
+      </CartProvider>
     </BrowserRouter>
   )
 }

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useCart } from '../hooks/useCart'
 import type { Product } from '../types'
 
 interface ProductCardProps {
@@ -7,6 +8,7 @@ interface ProductCardProps {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const navigate = useNavigate()
+  const { addToCart } = useCart()
 
   return (
     <div
@@ -43,7 +45,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           type="button"
           onClick={(e) => {
             e.stopPropagation()
-            console.log('Add to cart:', product.id)
+            addToCart(product)
           }}
           className="mt-1 w-full rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
         >

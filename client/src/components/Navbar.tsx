@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { useCart } from '../hooks/useCart'
 
 export default function Navbar() {
+  const { items } = useCart()
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const [mobileOpen, setMobileOpen] = useState(false)
 
   function linkClass({ isActive }: { isActive: boolean }) {
@@ -26,9 +29,11 @@ export default function Navbar() {
           </NavLink>
           <NavLink to="/cart" className={linkClass}>
             Cart
-            <span className="ml-1 inline-flex items-center justify-center rounded-full bg-gray-900 px-1.5 py-0.5 text-xs font-medium text-white">
-              0
-            </span>
+            {itemCount > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center rounded-full bg-gray-900 px-1.5 py-0.5 text-xs font-medium text-white">
+                {itemCount}
+              </span>
+            )}
           </NavLink>
           <NavLink to="/login" className={linkClass}>
             Login
@@ -57,9 +62,11 @@ export default function Navbar() {
           </NavLink>
           <NavLink to="/cart" className={linkClass} onClick={closeMobile}>
             Cart
-            <span className="ml-1 inline-flex items-center justify-center rounded-full bg-gray-900 px-1.5 py-0.5 text-xs font-medium text-white">
-              0
-            </span>
+            {itemCount > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center rounded-full bg-gray-900 px-1.5 py-0.5 text-xs font-medium text-white">
+                {itemCount}
+              </span>
+            )}
           </NavLink>
           <NavLink to="/login" className={linkClass} onClick={closeMobile}>
             Login
