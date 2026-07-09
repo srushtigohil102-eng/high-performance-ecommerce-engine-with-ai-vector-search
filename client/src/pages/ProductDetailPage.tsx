@@ -1,22 +1,32 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
+import type { Product } from '../types'
 import { mockProducts } from '../data/mockProducts'
 import ErrorMessage from '../components/ErrorMessage'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { addToCart } = useCart()
 
+  const [product, setProduct] = useState<Product | null>(null)
+  const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [confirmation, setConfirmation] = useState('')
 
   useEffect(() => {
+    setLoading(true)
     setQuantity(1)
     setConfirmation('')
+
+    // Simulate async fetch — swap for real API call next week
+    const found = mockProducts.find((p) => p.id === id) ?? null
+    setProduct(found)
+    setLoading(false)
   }, [id])
 
-  const product = mockProducts.find((p) => p.id === id)
+  if (loading) return <LoadingSpinner />
 
   if (!product) {
     return (
@@ -26,9 +36,11 @@ export default function ProductDetailPage() {
     )
   }
 
+  const currentProduct = product
+
   function handleAddToCart() {
-    addToCart(product)
-    setConfirmation(`${product.name} added to cart!`)
+    addToCart(currentProduct)
+    setConfirmation(`${currentProduct.name} added to cart!`)
     setTimeout(() => setConfirmation(''), 2500)
   }
 

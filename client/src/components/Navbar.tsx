@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
+import { useAuth } from '../hooks/useAuth'
 
 export default function Navbar() {
+  const navigate = useNavigate()
   const { items } = useCart()
+  const { isAuthenticated, logout } = useAuth()
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -13,6 +16,12 @@ export default function Navbar() {
 
   function closeMobile() {
     setMobileOpen(false)
+  }
+
+  function handleLogout() {
+    logout()
+    closeMobile()
+    navigate('/')
   }
 
   return (
@@ -35,9 +44,19 @@ export default function Navbar() {
               </span>
             )}
           </NavLink>
-          <NavLink to="/login" className={linkClass}>
-            Login
-          </NavLink>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
+              Logout
+            </button>
+          ) : (
+            <NavLink to="/login" className={linkClass}>
+              Login
+            </NavLink>
+          )}
         </div>
 
         {/* Hamburger button */}
@@ -68,9 +87,19 @@ export default function Navbar() {
               </span>
             )}
           </NavLink>
-          <NavLink to="/login" className={linkClass} onClick={closeMobile}>
-            Login
-          </NavLink>
+          {isAuthenticated ? (
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="text-left text-sm text-gray-600 hover:text-gray-900"
+            >
+              Logout
+            </button>
+          ) : (
+            <NavLink to="/login" className={linkClass} onClick={closeMobile}>
+              Login
+            </NavLink>
+          )}
         </div>
       )}
     </nav>

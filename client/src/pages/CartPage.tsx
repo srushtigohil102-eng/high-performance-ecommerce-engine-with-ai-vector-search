@@ -1,7 +1,17 @@
+import { useState, useEffect } from 'react'
 import { useCart } from '../hooks/useCart'
+import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function CartPage() {
   const { items, removeFromCart, updateQuantity, cartTotal } = useCart()
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Simulate async fetch — swap for real API call next week
+    setLoading(false)
+  }, [])
+
+  if (loading) return <LoadingSpinner />
 
   if (items.length === 0) {
     return (
