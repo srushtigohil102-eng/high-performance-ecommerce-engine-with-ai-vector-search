@@ -8,6 +8,8 @@ import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import { connectDB } from "./config/database";
 import logger from "./utils/logger";
+import authRoutes from "./routes/auth.routes";
+
 
 dotenv.config();
 
@@ -29,6 +31,7 @@ app.use(morgan("combined", {
     write: (message) => logger.info(message.trim()),
   },
 }));
+app.use("/api/auth", authRoutes);
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -80,6 +83,25 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     success: false,
     message: err.message || "Internal Server Error",
     ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+  });
+});
+
+// Update root endpoint with auth info
+app.get("/", (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    message: "E-Commerce AI Engine API",
+    version: "1.0.0",
+    endpoints: {
+      health: "/health",
+      auth: {
+        register: "POST /api/auth/register",
+        login: "POST /api/auth/login",
+        me: "GET /api/auth/me",
+        changePassword: "PUT /api/auth/change-password",
+      },
+      api: "/api",
+    },
   });
 });
 
