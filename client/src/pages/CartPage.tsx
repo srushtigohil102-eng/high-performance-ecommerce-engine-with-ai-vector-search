@@ -7,7 +7,6 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Simulate async fetch — swap for real API call next week
     setLoading(false)
   }, [])
 
@@ -26,64 +25,73 @@ export default function CartPage() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <h1 className="mb-8 text-3xl font-bold text-gray-900">Shopping Cart</h1>
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4">
         {items.map((item) => (
           <div
             key={item.product.id}
-            className="flex items-center gap-4 rounded-lg border border-gray-200 p-4"
+            className="rounded-lg border border-gray-200 p-4"
           >
-            <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
-              <img
-                src={item.product.imageUrl}
-                alt={item.product.name}
-                className="h-full w-full object-cover"
-              />
+            {/* Top row: image + info + remove */}
+            <div className="flex items-start gap-4">
+              <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:h-20 sm:w-20">
+                <img
+                  src={item.product.imageUrl}
+                  alt={item.product.name}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <h2 className="text-sm font-semibold text-gray-900">
+                  {item.product.name}
+                </h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  ${item.product.price.toFixed(2)} each
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => removeFromCart(item.product.id)}
+                className="flex-shrink-0 text-sm text-red-600 transition hover:text-red-800"
+                aria-label={`Remove ${item.product.name} from cart`}
+              >
+                Remove
+              </button>
             </div>
 
-            <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-semibold text-gray-900">
-                {item.product.name}
-              </h2>
-              <p className="mt-1 text-sm text-gray-500">
-                ${item.product.price.toFixed(2)} each
+            {/* Bottom row: quantity + line total */}
+            <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateQuantity(item.product.id, item.quantity - 1)
+                  }
+                  aria-label="Decrease quantity"
+                  className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-gray-700 transition hover:bg-gray-50"
+                >
+                  &minus;
+                </button>
+                <span className="w-6 text-center text-sm font-medium text-gray-900" aria-live="polite">
+                  {item.quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateQuantity(item.product.id, item.quantity + 1)
+                  }
+                  aria-label="Increase quantity"
+                  className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-gray-700 transition hover:bg-gray-50"
+                >
+                  +
+                </button>
+              </div>
+
+              <p className="text-sm font-semibold text-gray-900">
+                ${(item.product.price * item.quantity).toFixed(2)}
               </p>
             </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() =>
-                  updateQuantity(item.product.id, item.quantity - 1)
-                }
-                className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-gray-700 transition hover:bg-gray-50"
-              >
-                &minus;
-              </button>
-              <span className="w-6 text-center text-sm font-medium text-gray-900">
-                {item.quantity}
-              </span>
-              <button
-                type="button"
-                onClick={() =>
-                  updateQuantity(item.product.id, item.quantity + 1)
-                }
-                className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-gray-700 transition hover:bg-gray-50"
-              >
-                +
-              </button>
-            </div>
-
-            <p className="w-24 text-right text-sm font-semibold text-gray-900">
-              ${(item.product.price * item.quantity).toFixed(2)}
-            </p>
-
-            <button
-              type="button"
-              onClick={() => removeFromCart(item.product.id)}
-              className="text-sm text-red-600 transition hover:text-red-800"
-            >
-              Remove
-            </button>
           </div>
         ))}
       </div>

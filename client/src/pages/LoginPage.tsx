@@ -41,9 +41,12 @@ export default function LoginPage() {
     else { setPasswordError('') }
 
     if (valid) {
-      console.log('Login attempt:', { email, password })
-      login(email, password)
-      navigate('/admin', { replace: true })
+      const success = login(email, password)
+      if (success) {
+        navigate('/admin', { replace: true })
+      } else {
+        setEmailError('Invalid email or password')
+      }
     }
   }
 

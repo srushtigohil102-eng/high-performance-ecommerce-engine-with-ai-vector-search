@@ -25,7 +25,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="border-b border-gray-200 bg-white">
+    <nav className="border-b border-gray-200 bg-white" role="navigation" aria-label="Main navigation">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
         <NavLink to="/" className="text-xl font-bold text-gray-900" onClick={closeMobile}>
           ShopName
@@ -39,7 +39,7 @@ export default function Navbar() {
           <NavLink to="/cart" className={linkClass}>
             Cart
             {itemCount > 0 && (
-              <span className="ml-1 inline-flex items-center justify-center rounded-full bg-gray-900 px-1.5 py-0.5 text-xs font-medium text-white">
+              <span className="ml-1 inline-flex items-center justify-center rounded-full bg-gray-900 px-1.5 py-0.5 text-xs font-medium text-white" aria-label={`${itemCount} items in cart`}>
                 {itemCount}
               </span>
             )}
@@ -64,8 +64,9 @@ export default function Navbar() {
           type="button"
           className="flex flex-col gap-1.5 md:hidden"
           onClick={() => setMobileOpen((prev) => !prev)}
-          aria-label="Toggle navigation menu"
+          aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
           aria-expanded={mobileOpen}
+          aria-controls="mobile-menu"
         >
           <span className={`block h-0.5 w-6 bg-gray-900 transition-transform ${mobileOpen ? 'translate-y-2 rotate-45' : ''}`} />
           <span className={`block h-0.5 w-6 bg-gray-900 transition-opacity ${mobileOpen ? 'opacity-0' : ''}`} />
@@ -75,7 +76,7 @@ export default function Navbar() {
 
       {/* Mobile dropdown */}
       {mobileOpen && (
-        <div className="flex flex-col gap-2 border-t border-gray-200 px-4 py-4 md:hidden">
+        <div id="mobile-menu" className="flex flex-col gap-2 border-t border-gray-200 px-4 py-4 md:hidden">
           <NavLink to="/" end className={linkClass} onClick={closeMobile}>
             Home
           </NavLink>

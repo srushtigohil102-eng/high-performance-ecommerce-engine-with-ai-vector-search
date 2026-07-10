@@ -16,6 +16,7 @@ export default function ProductCard({ product }: ProductCardProps) {
       onClick={() => navigate(`/product/${product.id}`)}
       role="link"
       tabIndex={0}
+      aria-label={`View ${product.name}`}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault()
@@ -32,7 +33,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         />
       </div>
       <div className="flex flex-col gap-2 p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+        <p className="text-xs font-medium uppercase tracking-wide text-gray-600">
           {product.category}
         </p>
         <h2 className="text-sm font-semibold text-gray-900 line-clamp-2">

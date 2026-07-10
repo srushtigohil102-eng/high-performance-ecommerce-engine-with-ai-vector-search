@@ -1,1 +1,2 @@
-export { fetchProducts, fetchProduct } from './api'
+export { getProducts, getProductById } from './productService'
+export { apiClient, fetchProducts, fetchProduct } from './api'

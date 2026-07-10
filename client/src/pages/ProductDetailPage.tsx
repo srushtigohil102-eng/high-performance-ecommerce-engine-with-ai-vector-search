@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
 import type { Product } from '../types'
-import { mockProducts } from '../data/mockProducts'
+import { getProductById } from '../services/productService'
 import ErrorMessage from '../components/ErrorMessage'
 import LoadingSpinner from '../components/LoadingSpinner'
 
@@ -12,21 +12,43 @@ export default function ProductDetailPage() {
 
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [confirmation, setConfirmation] = useState('')
 
   useEffect(() => {
-    setLoading(true)
-    setQuantity(1)
-    setConfirmation('')
+    let cancelled = false
 
-    // Simulate async fetch — swap for real API call next week
-    const found = mockProducts.find((p) => p.id === id) ?? null
-    setProduct(found)
-    setLoading(false)
+    async function load() {
+      if (!id) return
+      setLoading(true)
+      setQuantity(1)
+      setConfirmation('')
+      setError('')
+
+      try {
+        const found = await getProductById(id)
+        if (!cancelled) setProduct(found)
+      } catch {
+        if (!cancelled) setError('Failed to load product. Please try again later.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
   }, [id])
 
   if (loading) return <LoadingSpinner />
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        <ErrorMessage message={error} />
+      </div>
+    )
+  }
 
   if (!product) {
     return (
@@ -36,11 +58,9 @@ export default function ProductDetailPage() {
     )
   }
 
-  const currentProduct = product
-
   function handleAddToCart() {
-    addToCart(currentProduct)
-    setConfirmation(`${currentProduct.name} added to cart!`)
+    addToCart(product)
+    setConfirmation(`${product.name} added to cart!`)
     setTimeout(() => setConfirmation(''), 2500)
   }
 
@@ -60,7 +80,7 @@ export default function ProductDetailPage() {
             ${product.price.toFixed(2)}
           </p>
           <p className="text-gray-600">{product.description}</p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-600">
             Category: {product.category}
           </p>
 
@@ -69,16 +89,18 @@ export default function ProductDetailPage() {
             <button
               type="button"
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              aria-label="Decrease quantity"
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50"
             >
               &minus;
             </button>
-            <span className="w-8 text-center text-sm font-medium text-gray-900">
+            <span className="w-8 text-center text-sm font-medium text-gray-900" aria-live="polite">
               {quantity}
             </span>
             <button
               type="button"
               onClick={() => setQuantity((q) => q + 1)}
+              aria-label="Increase quantity"
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50"
             >
               +
@@ -94,7 +116,7 @@ export default function ProductDetailPage() {
           </button>
 
           {confirmation && (
-            <p className="text-sm font-medium text-green-700">{confirmation}</p>
+            <p className="text-sm font-medium text-green-700" role="status">{confirmation}</p>
           )}
         </div>
       </div>
