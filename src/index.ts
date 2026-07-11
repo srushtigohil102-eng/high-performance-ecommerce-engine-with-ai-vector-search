@@ -9,6 +9,8 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/database";
 import logger from "./utils/logger";
 import authRoutes from "./routes/auth.routes";
+import productRoutes from "./routes/product.routes";
+
 
 
 dotenv.config();
@@ -42,6 +44,7 @@ app.use("/api", limiter);
 
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use("/api/products", productRoutes);
 
 // ===== ROUTES =====
 
