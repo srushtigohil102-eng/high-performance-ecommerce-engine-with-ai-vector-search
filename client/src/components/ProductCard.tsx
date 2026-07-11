@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
 import type { Product } from '../types'
+import Button from './Button'
 
 interface ProductCardProps {
   product: Product
@@ -42,16 +43,15 @@ export default function ProductCard({ product }: ProductCardProps) {
         <p className="text-lg font-bold text-gray-900">
           ${product.price.toFixed(2)}
         </p>
-        <button
-          type="button"
+        <Button
           onClick={(e) => {
             e.stopPropagation()
             addToCart(product)
           }}
-          className="mt-1 w-full rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
+          className="mt-1 w-full"
         >
           Add to Cart
-        </button>
+        </Button>
       </div>
     </div>
   )

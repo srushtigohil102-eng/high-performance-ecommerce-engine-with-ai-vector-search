@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useCart } from '../hooks/useCart'
+import Button from '../components/Button'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function CartPage() {
@@ -103,13 +104,12 @@ export default function CartPage() {
             ${cartTotal.toFixed(2)}
           </p>
         </div>
-        <button
-          type="button"
+        <Button
           disabled
-          className="mt-6 w-full rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white opacity-50"
+          className="mt-6 w-full opacity-50"
         >
           Proceed to Checkout
-        </button>
+        </Button>
       </div>
     </div>
   )

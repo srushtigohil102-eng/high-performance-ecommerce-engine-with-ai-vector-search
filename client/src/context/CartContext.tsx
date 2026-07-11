@@ -1,7 +1,7 @@
 import { createContext, useState, useMemo, type ReactNode } from 'react'
 import type { CartItem, Product } from '../types'
 
-interface CartContextValue {
+export interface CartContextValue {
   items: CartItem[]
   addToCart: (product: Product) => void
   removeFromCart: (productId: string) => void
@@ -12,7 +12,11 @@ interface CartContextValue {
 
 export const CartContext = createContext<CartContextValue | null>(null)
 
-export function CartProvider({ children }: { children: ReactNode }) {
+interface CartProviderProps {
+  children: ReactNode
+}
+
+export function CartProvider({ children }: CartProviderProps) {
   const [items, setItems] = useState<CartItem[]>([])
 
   const cartTotal = useMemo(

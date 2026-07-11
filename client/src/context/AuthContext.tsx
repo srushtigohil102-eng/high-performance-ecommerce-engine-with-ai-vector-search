@@ -1,7 +1,7 @@
 import { createContext, useState, useMemo, useCallback, type ReactNode } from 'react'
 import type { User } from '../types'
 
-interface AuthContextValue {
+export interface AuthContextValue {
   user: User | null
   isAuthenticated: boolean
   login: (email: string, password: string) => boolean
@@ -17,7 +17,11 @@ const FAKE_USER: User = {
   role: 'admin',
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+interface AuthProviderProps {
+  children: ReactNode
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null)
 
   const isAuthenticated = user !== null

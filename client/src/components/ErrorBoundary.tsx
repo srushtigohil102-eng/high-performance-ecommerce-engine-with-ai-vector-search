@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import Button from './Button'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -30,13 +31,12 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
           <p className="mt-4 max-w-md text-gray-600">
             An unexpected error occurred. Please try refreshing the page.
           </p>
-          <button
-            type="button"
+          <Button
             onClick={() => window.location.assign('/')}
-            className="mt-6 rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
+            className="mt-6"
           >
             Back to Home
-          </button>
+          </Button>
         </div>
       )
     }

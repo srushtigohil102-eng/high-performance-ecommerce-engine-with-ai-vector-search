@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
 import type { Product } from '../types'
 import { getProductById } from '../services/productService'
+import Button from '../components/Button'
 import ErrorMessage from '../components/ErrorMessage'
 import LoadingSpinner from '../components/LoadingSpinner'
 
@@ -59,6 +60,7 @@ export default function ProductDetailPage() {
   }
 
   function handleAddToCart() {
+    if (!product) return
     addToCart(product)
     setConfirmation(`${product.name} added to cart!`)
     setTimeout(() => setConfirmation(''), 2500)
@@ -90,7 +92,7 @@ export default function ProductDetailPage() {
               type="button"
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               aria-label="Decrease quantity"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50"
             >
               &minus;
             </button>
@@ -101,19 +103,18 @@ export default function ProductDetailPage() {
               type="button"
               onClick={() => setQuantity((q) => q + 1)}
               aria-label="Increase quantity"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50"
             >
               +
             </button>
           </div>
 
-          <button
-            type="button"
+          <Button
             onClick={handleAddToCart}
-            className="mt-2 w-fit rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-gray-800"
+            className="mt-2 w-fit"
           >
             Add to Cart
-          </button>
+          </Button>
 
           {confirmation && (
             <p className="text-sm font-medium text-green-700" role="status">{confirmation}</p>
