@@ -1,2 +1,3 @@
 export { getProducts, getProductById } from './productService'
-export { apiClient, fetchProducts, fetchProduct } from './api'
+export { apiClient, setAuthToken, clearAuthToken } from './apiClient'
+export * as authService from './authService'

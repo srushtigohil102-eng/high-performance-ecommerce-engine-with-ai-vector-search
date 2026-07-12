@@ -6,11 +6,12 @@ import Input from '../components/Input'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, authError, clearError } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [emailError, setEmailError] = useState('')
   const [passwordError, setPasswordError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   const isPasswordValid = password.length >= 8
@@ -28,7 +29,7 @@ export default function LoginPage() {
     }
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
 
     let valid = true
@@ -40,13 +41,16 @@ export default function LoginPage() {
     else if (!isPasswordValid) { setPasswordError('Password must be at least 8 characters'); valid = false }
     else { setPasswordError('') }
 
-    if (valid) {
-      const success = login(email, password)
+    if (!valid) return
+
+    setSubmitting(true)
+    try {
+      const success = await login(email, password)
       if (success) {
         navigate('/admin', { replace: true })
-      } else {
-        setEmailError('Invalid email or password')
       }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -56,6 +60,18 @@ export default function LoginPage() {
         <h1 className="mb-6 text-center text-3xl font-bold text-gray-900">
           Admin Login
         </h1>
+        {authError && (
+          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert">
+            {authError}
+            <button
+              type="button"
+              onClick={clearError}
+              className="ml-2 font-semibold underline hover:text-red-900"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
             label="Email"
@@ -75,8 +91,8 @@ export default function LoginPage() {
             onBlur={() => validateField('password')}
             error={passwordError}
           />
-          <Button type="submit" disabled={!isFormValid} className="mt-2">
-            Sign In
+          <Button type="submit" disabled={!isFormValid || submitting} className="mt-2">
+            {submitting ? 'Signing In...' : 'Sign In'}
           </Button>
         </form>
       </div>
