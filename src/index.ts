@@ -10,8 +10,7 @@ import { connectDB } from "./config/database";
 import logger from "./utils/logger";
 import authRoutes from "./routes/auth.routes";
 import productRoutes from "./routes/product.routes";
-
-
+import cartRoutes from "./routes/cart.routes";
 
 dotenv.config();
 
@@ -33,7 +32,10 @@ app.use(morgan("combined", {
     write: (message) => logger.info(message.trim()),
   },
 }));
-app.use("/api/auth", authRoutes);
+
+// ✅ IMPORTANT: Body parsers MUST come BEFORE routes!
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -42,12 +44,12 @@ const limiter = rateLimit({
 });
 app.use("/api", limiter);
 
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use("/api/products", productRoutes);
-
 // ===== ROUTES =====
+app.use("/api/auth", authRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/cart", cartRoutes);
 
+// ===== HEALTH CHECK =====
 app.get("/health", (_req: Request, res: Response) => {
   res.json({
     status: "OK",
@@ -58,38 +60,7 @@ app.get("/health", (_req: Request, res: Response) => {
   });
 });
 
-app.get("/", (_req: Request, res: Response) => {
-  res.json({
-    success: true,
-    message: "E-Commerce AI Engine API",
-    version: "1.0.0",
-    endpoints: {
-      health: "/health",
-      api: "/api",
-    },
-  });
-});
-
-// 404 handler
-app.use((req: Request, res: Response) => {
-  res.status(404).json({
-    success: false,
-    message: "Route not found",
-    path: req.originalUrl,
-  });
-});
-
-// Error handler
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  logger.error(`Error: ${err.message}`);
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || "Internal Server Error",
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
-  });
-});
-
-// Update root endpoint with auth info
+// ===== ROOT ENDPOINT =====
 app.get("/", (_req: Request, res: Response) => {
   res.json({
     success: true,
@@ -103,8 +74,40 @@ app.get("/", (_req: Request, res: Response) => {
         me: "GET /api/auth/me",
         changePassword: "PUT /api/auth/change-password",
       },
-      api: "/api",
+      products: {
+        getAll: "GET /api/products",
+        getById: "GET /api/products/:id",
+        create: "POST /api/products (Admin)",
+        update: "PUT /api/products/:id (Admin)",
+        delete: "DELETE /api/products/:id (Admin)",
+      },
+      cart: {
+        add: "POST /api/cart/add",
+        get: "GET /api/cart",
+        update: "PUT /api/cart/update",
+        remove: "DELETE /api/cart/remove/:productId",
+        clear: "DELETE /api/cart/clear",
+      },
     },
+  });
+});
+
+// ===== 404 HANDLER =====
+app.use((req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    message: "Route not found",
+    path: req.originalUrl,
+  });
+});
+
+// ===== ERROR HANDLER =====
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  logger.error(`Error: ${err.message}`);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   });
 });
 
@@ -125,7 +128,9 @@ const startServer = async () => {
       
       console.log(`📋 AVAILABLE ENDPOINTS:\n`);
       console.log(`   ❤️  Health    → GET  /health`);
-      console.log(`   🏠  Root      → GET  /`);
+      console.log(`   🔐  Auth      → /api/auth`);
+      console.log(`   📦  Products  → /api/products`);
+      console.log(`   🛒  Cart      → /api/cart`);
       console.log(`\n${"=".repeat(60)}`);
       console.log(`✅ API ready to accept requests\n`);
     });
