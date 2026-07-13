@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import { useParams, Link } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
+import { useToast } from '../hooks/useToast'
 import type { Product } from '../types'
 import { getProductById } from '../services/productService'
 import Button from '../components/Button'
@@ -10,43 +11,40 @@ import LoadingSpinner from '../components/LoadingSpinner'
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { addToCart } = useCart()
+  const { showToast } = useToast()
 
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [quantity, setQuantity] = useState(1)
-  const [confirmation, setConfirmation] = useState('')
+
+  const fetchProduct = useCallback(async () => {
+    if (!id) return
+    try {
+      setLoading(true)
+      setError('')
+      const found = await getProductById(id)
+      setProduct(found)
+    } catch {
+      setError('Failed to load product. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }, [id])
 
   useEffect(() => {
-    let cancelled = false
-
-    async function load() {
-      if (!id) return
-      setLoading(true)
-      setQuantity(1)
-      setConfirmation('')
-      setError('')
-
-      try {
-        const found = await getProductById(id)
-        if (!cancelled) setProduct(found)
-      } catch {
-        if (!cancelled) setError('Failed to load product. Please try again later.')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    }
-
-    load()
-    return () => { cancelled = true }
-  }, [id])
+    setQuantity(1)
+    fetchProduct().then(() => {})
+  }, [fetchProduct])
 
   if (loading) return <LoadingSpinner />
 
   if (error) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8">
-        <ErrorMessage message={error} />
+        <ErrorMessage message={error}>
+          <Button onClick={fetchProduct}>Retry</Button>
+        </ErrorMessage>
       </div>
     )
   }
@@ -54,16 +52,24 @@ export default function ProductDetailPage() {
   if (!product) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8">
-        <ErrorMessage message="Product not found." />
+        <div className="mx-auto max-w-md rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
+          <h2 className="mb-2 text-lg font-semibold text-gray-900">Product Not Found</h2>
+          <p className="mb-4 text-sm text-gray-600">
+            The product you're looking for doesn't exist or may have been removed.
+          </p>
+          <Link to="/">
+            <Button variant="outline">Back to Home</Button>
+          </Link>
+        </div>
       </div>
     )
   }
 
   function handleAddToCart() {
-    if (!product) return
-    addToCart(product)
-    setConfirmation(`${product.name} added to cart!`)
-    setTimeout(() => setConfirmation(''), 2500)
+    for (let i = 0; i < quantity; i++) {
+      addToCart(product)
+    }
+    showToast(`${product.name} added to cart!`)
   }
 
   return (
@@ -115,10 +121,6 @@ export default function ProductDetailPage() {
           >
             Add to Cart
           </Button>
-
-          {confirmation && (
-            <p className="text-sm font-medium text-green-700" role="status">{confirmation}</p>
-          )}
         </div>
       </div>
     </div>

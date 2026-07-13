@@ -5,6 +5,16 @@ export interface Product {
   description: string
   imageUrl: string
   category: string
+  stock?: number
+}
+
+export interface ProductPayload {
+  name: string
+  price: number
+  description: string
+  imageUrl: string
+  category: string
+  stock?: number
 }
 
 export interface User {

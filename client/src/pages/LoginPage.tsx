@@ -1,12 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useToast } from '../hooks/useToast'
 import Button from '../components/Button'
 import Input from '../components/Input'
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const { login, authError, clearError } = useAuth()
+  const { login, authError, clearError, user } = useAuth()
+  const { showToast } = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [emailError, setEmailError] = useState('')
@@ -47,11 +49,17 @@ export default function LoginPage() {
     try {
       const success = await login(email, password)
       if (success) {
+        showToast('Login successful')
         navigate('/admin', { replace: true })
       }
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (user) {
+    navigate('/admin', { replace: true })
+    return null
   }
 
   return (

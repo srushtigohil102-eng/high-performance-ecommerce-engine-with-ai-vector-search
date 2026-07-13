@@ -1,4 +1,4 @@
-import type { Product } from '../types'
+import type { Product, ProductPayload } from '../types'
 import { apiClient } from './apiClient'
 import { mockProducts } from '../data/mockProducts'
 
@@ -10,6 +10,7 @@ interface ProductResponse {
   description: string
   imageUrl: string
   category: string
+  stock?: number
 }
 
 function normalizeProduct(raw: ProductResponse): Product {
@@ -20,6 +21,7 @@ function normalizeProduct(raw: ProductResponse): Product {
     description: raw.description,
     imageUrl: raw.imageUrl,
     category: raw.category,
+    stock: raw.stock,
   }
 }
 
@@ -47,4 +49,18 @@ export async function getProductById(id: string): Promise<Product | null> {
     }
     throw new Error('Failed to load product. Please try again later.')
   }
+}
+
+export async function createProduct(payload: ProductPayload): Promise<Product> {
+  const { data } = await apiClient.post<ProductResponse>('/products', payload)
+  return normalizeProduct(data)
+}
+
+export async function updateProduct(id: string, payload: ProductPayload): Promise<Product> {
+  const { data } = await apiClient.put<ProductResponse>(`/products/${id}`, payload)
+  return normalizeProduct(data)
+}
+
+export async function deleteProduct(id: string): Promise<void> {
+  await apiClient.delete(`/products/${id}`)
 }
