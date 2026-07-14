@@ -18,6 +18,11 @@ function parseJwtPayload(token: string): { id: string; name: string; email: stri
   try {
     const base64 = token.split('.')[1]
     const payload = JSON.parse(atob(base64))
+
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      return null
+    }
+
     return {
       id: payload.sub ?? payload.id ?? payload._id ?? '',
       name: payload.name ?? '',
@@ -37,7 +42,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(() => {
     const stored = localStorage.getItem('jwt_token')
     if (stored) {
-      return parseJwtPayload(stored)
+      const parsed = parseJwtPayload(stored)
+      if (!parsed) {
+        localStorage.removeItem('jwt_token')
+      }
+      return parsed
     }
     return null
   })

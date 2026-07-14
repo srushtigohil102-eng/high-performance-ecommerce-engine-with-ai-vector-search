@@ -33,3 +33,18 @@ export interface ApiError {
   message: string
   status: number
 }
+
+export interface PaginatedResponse {
+  products: Product[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
+export interface ProductQueryParams {
+  page?: number
+  limit?: number
+  category?: string
+  search?: string
+}

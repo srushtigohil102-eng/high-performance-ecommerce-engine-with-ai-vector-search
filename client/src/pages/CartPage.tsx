@@ -1,23 +1,18 @@
-import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
 import Button from '../components/Button'
-import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function CartPage() {
   const { items, removeFromCart, updateQuantity, cartTotal } = useCart()
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    setLoading(false)
-  }, [])
-
-  if (loading) return <LoadingSpinner />
 
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8">
         <h1 className="mb-6 text-3xl font-bold text-gray-900">Shopping Cart</h1>
-        <p className="text-gray-600">Your cart is empty.</p>
+        <p className="mb-4 text-gray-600">Your cart is empty.</p>
+        <Link to="/" className="text-sm font-medium text-gray-900 underline hover:text-gray-600">
+          Browse Products
+        </Link>
       </div>
     )
   }
@@ -69,8 +64,9 @@ export default function CartPage() {
                   onClick={() =>
                     updateQuantity(item.product.id, item.quantity - 1)
                   }
+                  disabled={item.quantity <= 1}
                   aria-label="Decrease quantity"
-                  className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-gray-700 transition hover:bg-gray-50"
+                  className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   &minus;
                 </button>
@@ -104,9 +100,12 @@ export default function CartPage() {
             ${cartTotal.toFixed(2)}
           </p>
         </div>
+        <p className="mt-4 text-center text-xs text-gray-500">
+          Checkout coming soon — Week 3
+        </p>
         <Button
           disabled
-          className="mt-6 w-full opacity-50"
+          className="mt-2 w-full opacity-50"
         >
           Proceed to Checkout
         </Button>

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
@@ -14,6 +14,12 @@ export default function LoginPage() {
   const [emailError, setEmailError] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (user) {
+      navigate(user.role === 'admin' ? '/admin' : '/', { replace: true })
+    }
+  }, [user, navigate])
 
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   const isPasswordValid = password.length >= 8
@@ -50,16 +56,10 @@ export default function LoginPage() {
       const success = await login(email, password)
       if (success) {
         showToast('Login successful')
-        navigate('/admin', { replace: true })
       }
     } finally {
       setSubmitting(false)
     }
-  }
-
-  if (user) {
-    navigate('/admin', { replace: true })
-    return null
   }
 
   return (
@@ -86,7 +86,7 @@ export default function LoginPage() {
             type="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); clearError() }}
             onBlur={() => validateField('email')}
             error={emailError}
           />
@@ -95,7 +95,7 @@ export default function LoginPage() {
             type="password"
             required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => { setPassword(e.target.value); clearError() }}
             onBlur={() => validateField('password')}
             error={passwordError}
           />

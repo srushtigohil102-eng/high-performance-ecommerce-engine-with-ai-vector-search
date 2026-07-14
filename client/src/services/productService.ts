@@ -1,4 +1,4 @@
-import type { Product, ProductPayload } from '../types'
+import type { Product, ProductPayload, PaginatedResponse, ProductQueryParams } from '../types'
 import { apiClient } from './apiClient'
 import { mockProducts } from '../data/mockProducts'
 
@@ -25,14 +25,61 @@ function normalizeProduct(raw: ProductResponse): Product {
   }
 }
 
-export async function getProducts(): Promise<Product[]> {
+function filterMockProducts(
+  allProducts: Product[],
+  params: ProductQueryParams,
+): PaginatedResponse {
+  let filtered = [...allProducts]
+
+  if (params.category) {
+    filtered = filtered.filter(
+      (p) => p.category.toLowerCase() === params.category!.toLowerCase(),
+    )
+  }
+
+  if (params.search) {
+    const q = params.search.toLowerCase()
+    filtered = filtered.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q),
+    )
+  }
+
+  const page = params.page ?? 1
+  const limit = params.limit ?? 12
+  const total = filtered.length
+  const totalPages = Math.ceil(total / limit)
+  const start = (page - 1) * limit
+  const paged = filtered.slice(start, start + limit)
+
+  return { products: paged, total, page, limit, totalPages }
+}
+
+export async function getProducts(
+  params: ProductQueryParams = {},
+): Promise<PaginatedResponse> {
   try {
-    const { data } = await apiClient.get<ProductResponse[]>('/products')
-    return Array.isArray(data) ? data.map(normalizeProduct) : []
+    const { data } = await apiClient.get<ProductResponse[] | PaginatedResponse>(
+      '/products',
+      { params },
+    )
+
+    if (Array.isArray(data)) {
+      return filterMockProducts(data.map(normalizeProduct), params)
+    }
+
+    return {
+      products: (data.products ?? []).map(normalizeProduct),
+      total: data.total ?? 0,
+      page: data.page ?? params.page ?? 1,
+      limit: data.limit ?? params.limit ?? 12,
+      totalPages: data.totalPages ?? 1,
+    }
   } catch (err) {
     if (import.meta.env.DEV) {
       console.warn('[productService] API unavailable, falling back to mock data', err)
-      return [...mockProducts]
+      return filterMockProducts(mockProducts, params)
     }
     throw new Error('Failed to load products. Please try again later.')
   }

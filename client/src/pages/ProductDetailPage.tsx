@@ -66,6 +66,7 @@ export default function ProductDetailPage() {
   }
 
   function handleAddToCart() {
+    if (!product) return
     for (let i = 0; i < quantity; i++) {
       addToCart(product)
     }
