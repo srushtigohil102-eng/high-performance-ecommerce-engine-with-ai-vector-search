@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, memo } from 'react'
 import ProductCard from '../components/ProductCard'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorMessage from '../components/ErrorMessage'
@@ -10,7 +10,7 @@ import { useDebounce } from '../hooks/useDebounce'
 
 const PRODUCTS_PER_PAGE = 12
 
-export default function HomePage() {
+function HomePageInner() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -55,18 +55,26 @@ export default function HomePage() {
       .catch(() => {})
   }, [])
 
-  useEffect(() => {
-    fetchProducts().then(() => {})
-  }, [fetchProducts])
+  // Detect filter changes and reset page before fetching, avoiding redundant API calls
+  const prevFiltersRef = useRef({ category: '', search: '' })
 
-  // Reset to page 1 when filters change
   useEffect(() => {
-    setPage(1)
-  }, [category, debouncedSearch])
+    const prev = prevFiltersRef.current
+    const filtersChanged = prev.category !== category || prev.search !== debouncedSearch
 
-  function handleCategoryChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    if (filtersChanged) {
+      prevFiltersRef.current = { category, search: debouncedSearch }
+      setPage(1)
+      return
+    }
+
+    prevFiltersRef.current = { category, search: debouncedSearch }
+    fetchProducts()
+  }, [page, category, debouncedSearch, fetchProducts])
+
+  const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     setCategory(e.target.value)
-  }
+  }, [])
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -134,3 +142,6 @@ export default function HomePage() {
     </div>
   )
 }
+
+const HomePage = memo(HomePageInner)
+export default HomePage

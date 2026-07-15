@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, useMemo, useCallback, type FormEvent } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
 import type { Product, ProductPayload } from '../types'
@@ -17,6 +17,26 @@ const emptyForm: ProductPayload = {
   stock: 0,
 }
 
+interface FormErrors {
+  name?: string
+  price?: string
+  category?: string
+}
+
+function validateForm(form: ProductPayload): FormErrors {
+  const errors: FormErrors = {}
+  if (!form.name.trim()) {
+    errors.name = 'Name is required'
+  }
+  if (form.price <= 0) {
+    errors.price = 'Price must be a positive number'
+  }
+  if (!form.category.trim()) {
+    errors.category = 'Category is required'
+  }
+  return errors
+}
+
 export default function AdminPage() {
   const { user } = useAuth()
   const { showToast } = useToast()
@@ -27,12 +47,16 @@ export default function AdminPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [form, setForm] = useState<ProductPayload>(emptyForm)
+  const [formErrors, setFormErrors] = useState<FormErrors>({})
+  const [formTouched, setFormTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  async function fetchProducts() {
+  const [refreshing, setRefreshing] = useState(false)
+
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true)
       setError('')
@@ -43,15 +67,34 @@ export default function AdminPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true)
+    try {
+      const result = await getProducts({ limit: 200 })
+      setProducts(result.products)
+      showToast('Product list refreshed')
+    } catch {
+      showToast('Failed to refresh products', 'error')
+    } finally {
+      setRefreshing(false)
+    }
+  }, [showToast])
 
   useEffect(() => {
     fetchProducts()
-  }, [])
+  }, [fetchProducts])
+
+  const formValid = useMemo(() => {
+    return form.name.trim() !== '' && form.price > 0 && form.category.trim() !== ''
+  }, [form.name, form.price, form.category])
 
   function openAddForm() {
     setEditingProduct(null)
     setForm(emptyForm)
+    setFormErrors({})
+    setFormTouched(false)
     setShowForm(true)
   }
 
@@ -65,6 +108,8 @@ export default function AdminPage() {
       category: product.category,
       stock: product.stock ?? 0,
     })
+    setFormErrors({})
+    setFormTouched(false)
     setShowForm(true)
   }
 
@@ -72,14 +117,32 @@ export default function AdminPage() {
     setShowForm(false)
     setEditingProduct(null)
     setForm(emptyForm)
+    setFormErrors({})
+    setFormTouched(false)
   }
 
   function updateFormField(field: keyof ProductPayload, value: string | number) {
-    setForm((prev) => ({ ...prev, [field]: value }))
+    setForm((prev) => {
+      const next = { ...prev, [field]: value }
+      if (formTouched) {
+        setFormErrors(validateForm(next))
+      }
+      return next
+    })
+  }
+
+  function handleFormBlur() {
+    setFormTouched(true)
+    setFormErrors(validateForm(form))
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+    setFormTouched(true)
+    const errors = validateForm(form)
+    setFormErrors(errors)
+    if (Object.keys(errors).length > 0) return
+
     setSubmitting(true)
     try {
       if (editingProduct) {
@@ -136,10 +199,18 @@ export default function AdminPage() {
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           {user && <p className="mt-1 text-sm text-gray-500">Logged in as {user.name} ({user.role})</p>}
         </div>
-        <Button onClick={openAddForm}>+ Add Product</Button>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </Button>
+          <Button onClick={openAddForm}>+ Add Product</Button>
+        </div>
       </div>
 
-      {/* RBAC note */}
       <div className="mb-4 rounded-md bg-yellow-50 border border-yellow-200 p-3 text-xs text-yellow-800">
         Note: Backend RBAC enforcement is pending. Currently any authenticated user can access admin endpoints.
       </div>
@@ -190,19 +261,20 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Add/Edit Modal */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="mx-4 w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
             <h2 className="mb-4 text-xl font-bold text-gray-900">
               {editingProduct ? 'Edit Product' : 'Add Product'}
             </h2>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
               <Input
                 label="Name"
                 required
                 value={form.name}
                 onChange={(e) => updateFormField('name', e.target.value)}
+                onBlur={handleFormBlur}
+                error={formErrors.name}
               />
               <div className="grid grid-cols-2 gap-4">
                 <Input
@@ -213,6 +285,8 @@ export default function AdminPage() {
                   step="0.01"
                   value={form.price}
                   onChange={(e) => updateFormField('price', parseFloat(e.target.value) || 0)}
+                  onBlur={handleFormBlur}
+                  error={formErrors.price}
                 />
                 <Input
                   label="Stock"
@@ -227,10 +301,11 @@ export default function AdminPage() {
                 required
                 value={form.category}
                 onChange={(e) => updateFormField('category', e.target.value)}
+                onBlur={handleFormBlur}
+                error={formErrors.category}
               />
               <Input
                 label="Image URL"
-                required
                 value={form.imageUrl}
                 onChange={(e) => updateFormField('imageUrl', e.target.value)}
               />
@@ -239,7 +314,6 @@ export default function AdminPage() {
                 <textarea
                   id="admin-desc"
                   rows={3}
-                  required
                   value={form.description}
                   onChange={(e) => updateFormField('description', e.target.value)}
                   className="rounded-lg border border-gray-300 px-4 py-2 text-sm transition focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
@@ -249,7 +323,7 @@ export default function AdminPage() {
                 <Button variant="outline" onClick={closeForm} disabled={submitting}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={submitting}>
+                <Button type="submit" disabled={submitting || !formValid}>
                   {submitting ? 'Saving...' : editingProduct ? 'Update' : 'Create'}
                 </Button>
               </div>
@@ -258,7 +332,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {deletingProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="mx-4 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
