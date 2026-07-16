@@ -36,7 +36,7 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     setQuantity(1)
-    fetchProduct().then(() => {})
+    fetchProduct()
   }, [fetchProduct])
 
   const outOfStock = useMemo(
@@ -46,9 +46,7 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = useCallback(() => {
     if (!product) return
-    for (let i = 0; i < quantity; i++) {
-      addToCart(product)
-    }
+    addToCart(product, quantity)
     showToast(`${product.name} added to cart!`)
   }, [product, quantity, addToCart, showToast])
 

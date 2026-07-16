@@ -1,21 +1,54 @@
 import type { CartItem } from '../types'
 import { apiClient } from './apiClient'
 
-/**
- * Stub functions for Week 3 cart/checkout API integration.
- * CartContext currently uses local state only — these will wire up
- * the real backend endpoints once confirmed by the backend dev.
- */
+interface BackendCartItem {
+  productId: string
+  quantity: number
+  product: {
+    id: string
+    name: string
+    price: number
+    description: string
+    imageUrl: string
+    category: string
+    stock?: number
+  }
+}
 
-export async function syncCartToBackend(items: CartItem[]): Promise<void> {
-  // TODO: Implement when backend cart API is live
-  // POST /cart with full cart state
-  await apiClient.post('/cart', { items })
+function normalizeBackendCart(items: BackendCartItem[]): CartItem[] {
+  return items.map((item) => ({
+    product: {
+      id: item.product.id,
+      name: item.product.name,
+      price: item.product.price,
+      description: item.product.description,
+      imageUrl: item.product.imageUrl,
+      category: item.product.category,
+      stock: item.product.stock,
+    },
+    quantity: item.quantity,
+  }))
 }
 
 export async function fetchCartFromBackend(): Promise<CartItem[]> {
-  // TODO: Implement when backend cart API is live
-  // GET /cart — returns the user's persisted cart
-  const { data } = await apiClient.get<CartItem[]>('/cart')
-  return data
+  const { data } = await apiClient.get<BackendCartItem[] | { items: BackendCartItem[] }>('/cart')
+  const raw = Array.isArray(data) ? data : data.items ?? []
+  return normalizeBackendCart(raw)
+}
+
+export async function syncCartToBackend(items: CartItem[]): Promise<void> {
+  await apiClient.post('/cart', {
+    items: items.map((item) => ({
+      productId: item.product.id,
+      quantity: item.quantity,
+    })),
+  })
+}
+
+export async function updateCartItemBackend(productId: string, quantity: number): Promise<void> {
+  await apiClient.put(`/cart/${productId}`, { quantity })
+}
+
+export async function removeCartItemBackend(productId: string): Promise<void> {
+  await apiClient.delete(`/cart/${productId}`)
 }
