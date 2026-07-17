@@ -119,7 +119,7 @@ function HomePageInner() {
       )}
 
       {loading ? (
-        <LoadingSpinner size="lg" />
+        <LoadingSpinner size="lg" message="Loading products..." />
       ) : error ? (
         <div className="py-8">
           <ErrorMessage message={error}>
@@ -127,7 +127,23 @@ function HomePageInner() {
           </ErrorMessage>
         </div>
       ) : products.length === 0 ? (
-        <p className="py-8 text-center text-gray-500">No products found.</p>
+        <div className="py-12 text-center">
+          <p className="mb-2 text-lg font-medium text-gray-900">No products found</p>
+          <p className="mb-4 text-sm text-gray-500">
+            {searchInput || category
+              ? 'Try adjusting your search or filter to find what you\'re looking for.'
+              : 'No products are available right now. Check back soon!'}
+          </p>
+          {(searchInput || category) && (
+            <button
+              type="button"
+              onClick={() => { setSearchInput(''); setCategory('') }}
+              className="text-sm font-medium text-gray-900 underline hover:text-gray-600"
+            >
+              Clear all filters
+            </button>
+          )}
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

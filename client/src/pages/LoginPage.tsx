@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
 import Button from '../components/Button'
@@ -7,6 +7,7 @@ import Input from '../components/Input'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { login, authError, clearError, user } = useAuth()
   const { showToast } = useToast()
   const [email, setEmail] = useState('')
@@ -14,6 +15,8 @@ export default function LoginPage() {
   const [emailError, setEmailError] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  const sessionExpired = searchParams.get('session') === 'expired'
 
   useEffect(() => {
     if (user) {
@@ -66,8 +69,13 @@ export default function LoginPage() {
     <div className="mx-auto flex min-h-[60vh] max-w-md items-center justify-center px-4">
       <div className="w-full">
         <h1 className="mb-6 text-center text-3xl font-bold text-gray-900">
-          Admin Login
+          Sign In
         </h1>
+        {sessionExpired && (
+          <div className="mb-4 rounded-md bg-yellow-50 p-3 text-sm text-yellow-800" role="alert">
+            Your session has expired. Please sign in again.
+          </div>
+        )}
         {authError && (
           <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert">
             {authError}

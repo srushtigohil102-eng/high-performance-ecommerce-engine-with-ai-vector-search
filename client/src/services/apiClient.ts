@@ -35,7 +35,10 @@ apiClient.interceptors.response.use(
   (error) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       clearAuthToken()
-      window.location.href = '/login'
+      const currentPath = window.location.pathname
+      if (currentPath !== '/login') {
+        window.location.href = '/login?session=expired'
+      }
     }
     return Promise.reject(error)
   },

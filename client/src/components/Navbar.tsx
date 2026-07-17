@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth'
 export default function Navbar() {
   const navigate = useNavigate()
   const { items } = useCart()
-  const { isAuthenticated, logout } = useAuth()
+  const { isAuthenticated, user, logout } = useAuth()
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -44,6 +44,11 @@ export default function Navbar() {
               </span>
             )}
           </NavLink>
+          {isAuthenticated && user?.role === 'admin' && (
+            <NavLink to="/admin" className={linkClass}>
+              Admin
+            </NavLink>
+          )}
           {isAuthenticated ? (
             <button
               type="button"
@@ -88,6 +93,11 @@ export default function Navbar() {
               </span>
             )}
           </NavLink>
+          {isAuthenticated && user?.role === 'admin' && (
+            <NavLink to="/admin" className={linkClass} onClick={closeMobile}>
+              Admin
+            </NavLink>
+          )}
           {isAuthenticated ? (
             <button
               type="button"

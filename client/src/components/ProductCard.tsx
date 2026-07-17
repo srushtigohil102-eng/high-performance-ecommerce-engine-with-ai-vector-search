@@ -41,7 +41,7 @@ function ProductCard({ product }: ProductCardProps) {
     <div
       className="group cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-white transition-shadow hover:shadow-lg"
       onClick={handleNavigate}
-      role="link"
+      role="button"
       tabIndex={0}
       aria-label={`View ${product.name}`}
       onKeyDown={handleKeyDown}

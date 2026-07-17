@@ -118,7 +118,7 @@ export default function ProductDetailPage() {
             <button
               type="button"
               onClick={() => setQuantity((q) => q + 1)}
-              disabled={outOfStock}
+              disabled={outOfStock || quantity >= (product.stock ?? Infinity)}
               aria-label="Increase quantity"
               className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
