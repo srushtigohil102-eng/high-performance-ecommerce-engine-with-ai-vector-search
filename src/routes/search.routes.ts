@@ -1,4 +1,5 @@
-import { Router } from "express";import {
+import { Router } from "express";
+import {
   vectorSearch,
   hybridSearch,
   getSimilarProducts,
@@ -10,5 +11,8 @@ const router = Router();
 router.get("/vector", vectorSearch);
 router.get("/hybrid", hybridSearch);
 router.get("/similar/:productId", getSimilarProducts);
+
+// Personalized recommendations (requires auth)
+// router.get("/recommendations", authenticate, getPersonalizedRecommendations);
 
 export default router;
