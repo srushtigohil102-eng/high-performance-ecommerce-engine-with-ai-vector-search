@@ -1,4 +1,13 @@
-import { createContext, useState, useMemo, useCallback, useEffect, useRef, type ReactNode } from 'react'
+/* oxlint-disable react(only-export-components) */
+import {
+  createContext,
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+  useRef,
+  type ReactNode,
+} from 'react'
 import type { CartItem, Product } from '../types'
 import { useAuth } from '../hooks/useAuth'
 import {
@@ -27,6 +36,8 @@ export function CartProvider({ children }: CartProviderProps) {
   const [items, setItems] = useState<CartItem[]>([])
   const { isAuthenticated } = useAuth()
   const didSyncRef = useRef(false)
+  const itemsRef = useRef(items)
+  itemsRef.current = items
 
   const cartTotal = useMemo(
     () => items.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
@@ -34,42 +45,39 @@ export function CartProvider({ children }: CartProviderProps) {
   )
 
   const addToCart = useCallback(async (product: Product, quantity: number = 1) => {
-    const prev = items
+    let nextItems: CartItem[] = []
     setItems((prevItems) => {
       const existing = prevItems.find((item) => item.product.id === product.id)
-      if (existing) {
-        return prevItems.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item,
-        )
-      }
-      return [...prevItems, { product, quantity }]
+      nextItems = existing
+        ? prevItems.map((item) =>
+            item.product.id === product.id
+              ? { ...item, quantity: item.quantity + quantity }
+              : item,
+          )
+        : [...prevItems, { product, quantity }]
+      return nextItems
     })
 
     try {
-      const next = prev.find((i) => i.product.id === product.id)
-        ? prev.map((i) => i.product.id === product.id ? { ...i, quantity: i.quantity + quantity } : i)
-        : [...prev, { product, quantity }]
-      await syncCartToBackend(next)
+      await syncCartToBackend(nextItems)
     } catch {
-      setItems(prev)
+      setItems(itemsRef.current)
     }
-  }, [items])
+  }, [])
 
   const removeFromCart = useCallback(async (productId: string) => {
-    const prev = items
+    const prevSnapshot = itemsRef.current
     setItems((prevItems) => prevItems.filter((item) => item.product.id !== productId))
 
     try {
       await removeCartItemBackend(productId)
     } catch {
-      setItems(prev)
+      setItems(prevSnapshot)
     }
-  }, [items])
+  }, [])
 
   const updateQuantity = useCallback(async (productId: string, quantity: number) => {
-    const prev = items
+    const prevSnapshot = itemsRef.current
     setItems((prevItems) =>
       quantity <= 0
         ? prevItems.filter((item) => item.product.id !== productId)
@@ -85,9 +93,9 @@ export function CartProvider({ children }: CartProviderProps) {
         await updateCartItemBackend(productId, quantity)
       }
     } catch {
-      setItems(prev)
+      setItems(prevSnapshot)
     }
-  }, [items])
+  }, [])
 
   const clearCart = useCallback(() => {
     setItems([])

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, memo } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import ProductCard from '../components/ProductCard'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorMessage from '../components/ErrorMessage'
@@ -10,7 +10,7 @@ import { useDebounce } from '../hooks/useDebounce'
 
 const PRODUCTS_PER_PAGE = 12
 
-function HomePageInner() {
+export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -55,22 +55,9 @@ function HomePageInner() {
       .catch(() => {})
   }, [])
 
-  // Detect filter changes and reset page before fetching, avoiding redundant API calls
-  const prevFiltersRef = useRef({ category: '', search: '' })
-
   useEffect(() => {
-    const prev = prevFiltersRef.current
-    const filtersChanged = prev.category !== category || prev.search !== debouncedSearch
-
-    if (filtersChanged) {
-      prevFiltersRef.current = { category, search: debouncedSearch }
-      setPage(1)
-      return
-    }
-
-    prevFiltersRef.current = { category, search: debouncedSearch }
     fetchProducts()
-  }, [page, category, debouncedSearch, fetchProducts])
+  }, [fetchProducts])
 
   const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     setCategory(e.target.value)
@@ -158,6 +145,3 @@ function HomePageInner() {
     </div>
   )
 }
-
-const HomePage = memo(HomePageInner)
-export default HomePage

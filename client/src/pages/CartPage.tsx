@@ -79,7 +79,7 @@ function CartPage() {
                   onClick={handleDecrease(item.product.id, item.quantity)}
                   disabled={item.quantity <= 1}
                   aria-label="Decrease quantity"
-                  className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   &minus;
                 </button>
@@ -89,8 +89,9 @@ function CartPage() {
                 <button
                   type="button"
                   onClick={handleIncrease(item.product.id, item.quantity)}
+                  disabled={item.quantity >= (item.product.stock ?? Infinity)}
                   aria-label="Increase quantity"
-                  className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-gray-700 transition hover:bg-gray-50"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   +
                 </button>

@@ -47,9 +47,13 @@ export default function AdminPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [form, setForm] = useState<ProductPayload>(emptyForm)
-  const [formErrors, setFormErrors] = useState<FormErrors>({})
   const [formTouched, setFormTouched] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+
+  const formErrors = useMemo(() => {
+    if (!formTouched) return {}
+    return validateForm(form)
+  }, [form, formTouched])
 
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -93,7 +97,6 @@ export default function AdminPage() {
   function openAddForm() {
     setEditingProduct(null)
     setForm(emptyForm)
-    setFormErrors({})
     setFormTouched(false)
     setShowForm(true)
   }
@@ -108,7 +111,6 @@ export default function AdminPage() {
       category: product.category,
       stock: product.stock ?? 0,
     })
-    setFormErrors({})
     setFormTouched(false)
     setShowForm(true)
   }
@@ -117,30 +119,21 @@ export default function AdminPage() {
     setShowForm(false)
     setEditingProduct(null)
     setForm(emptyForm)
-    setFormErrors({})
     setFormTouched(false)
   }
 
   function updateFormField(field: keyof ProductPayload, value: string | number) {
-    setForm((prev) => {
-      const next = { ...prev, [field]: value }
-      if (formTouched) {
-        setFormErrors(validateForm(next))
-      }
-      return next
-    })
+    setForm((prev) => ({ ...prev, [field]: value }))
   }
 
   function handleFormBlur() {
     setFormTouched(true)
-    setFormErrors(validateForm(form))
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setFormTouched(true)
     const errors = validateForm(form)
-    setFormErrors(errors)
     if (Object.keys(errors).length > 0) return
 
     setSubmitting(true)

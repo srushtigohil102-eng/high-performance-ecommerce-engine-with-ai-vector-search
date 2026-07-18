@@ -1,4 +1,4 @@
-import { useState, memo } from 'react'
+import { useState, useEffect, memo } from 'react'
 
 const PLACEHOLDER_SRC = 'https://placehold.co/400x400/e5e7eb/9ca3af?text=No+Image'
 
@@ -12,6 +12,12 @@ function ProductImage({ src, alt, className = '' }: ProductImageProps) {
   const [imgSrc, setImgSrc] = useState(src || PLACEHOLDER_SRC)
   const [loaded, setLoaded] = useState(false)
   const [hadError, setHadError] = useState(false)
+
+  useEffect(() => {
+    setImgSrc(src || PLACEHOLDER_SRC)
+    setLoaded(false)
+    setHadError(false)
+  }, [src])
 
   return (
     <div className={`relative overflow-hidden ${className}`}>

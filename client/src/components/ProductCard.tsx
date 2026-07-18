@@ -1,6 +1,7 @@
 import { memo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
+import { useToast } from '../hooks/useToast'
 import type { Product } from '../types'
 import Button from './Button'
 import ProductImage from './ProductImage'
@@ -13,6 +14,7 @@ interface ProductCardProps {
 function ProductCard({ product }: ProductCardProps) {
   const navigate = useNavigate()
   const { addToCart } = useCart()
+  const { showToast } = useToast()
   const outOfStock = (product.stock ?? 0) === 0
 
   const handleNavigate = useCallback(() => {
@@ -23,8 +25,9 @@ function ProductCard({ product }: ProductCardProps) {
     (e: React.MouseEvent) => {
       e.stopPropagation()
       addToCart(product)
+      showToast(`${product.name} added to cart!`)
     },
-    [addToCart, product],
+    [addToCart, product, showToast],
   )
 
   const handleKeyDown = useCallback(
