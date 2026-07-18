@@ -3,6 +3,7 @@ import { Order } from "../models/Order";
 import { Cart } from "../models/Cart";
 import { Product } from "../models/Product";
 import logger from "../utils/logger";
+import { sendOrderNotification, sendOrderStatusUpdate } from "../services/socket.service";
 
 // ===== CREATE ORDER FROM CART =====
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
@@ -83,6 +84,9 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
 
     // Populate order details
     await order.populate("items.product");
+
+    // ✅ SEND REAL-TIME NOTIFICATION
+    await sendOrderNotification(order._id.toString(), userId);
 
     res.status(201).json({
       success: true,
@@ -237,6 +241,9 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
     await order.save();
 
     await order.populate("items.product");
+
+    // ✅ SEND REAL-TIME STATUS UPDATE
+    await sendOrderStatusUpdate(order._id.toString(), status);
 
     res.status(200).json({
       success: true,

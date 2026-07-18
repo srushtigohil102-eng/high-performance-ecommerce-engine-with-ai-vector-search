@@ -1,4 +1,5 @@
 import express, { Application, Request, Response, NextFunction } from "express";
+import { createServer } from "http";
 import mongoose from "mongoose";
 import cors from "cors";
 import helmet from "helmet";
@@ -8,21 +9,26 @@ import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import { connectDB } from "./config/database";
 import logger from "./utils/logger";
+import { initializeSocket } from "./services/socket.service";
+
+// Import routes
 import authRoutes from "./routes/auth.routes";
 import productRoutes from "./routes/product.routes";
 import cartRoutes from "./routes/cart.routes";
 import orderRoutes from "./routes/order.routes";
+import paymentRoutes from "./routes/payment.routes";
 import searchRoutes from "./routes/search.routes";
-
-
-
 
 dotenv.config();
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
+const server = createServer(app);
 
 // ===== MIDDLEWARE =====
+
+// Webhook route - raw body required (MUST be before express.json)
+app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
 
 app.use(helmet());
 app.use(cors({
@@ -38,10 +44,11 @@ app.use(morgan("combined", {
   },
 }));
 
-// ✅ IMPORTANT: Body parsers MUST come BEFORE routes!
+// Body parsers
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -54,11 +61,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
-app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
-app.use(express.json({ limit: "10mb" }));
+app.use("/api/payments", paymentRoutes);
 app.use("/api/search", searchRoutes);
-
-
 
 // ===== HEALTH CHECK =====
 app.get("/health", (_req: Request, res: Response) => {
@@ -76,29 +80,16 @@ app.get("/", (_req: Request, res: Response) => {
   res.json({
     success: true,
     message: "E-Commerce AI Engine API",
-    version: "1.0.0",
+    version: "2.0.0",
     endpoints: {
       health: "/health",
-      auth: {
-        register: "POST /api/auth/register",
-        login: "POST /api/auth/login",
-        me: "GET /api/auth/me",
-        changePassword: "PUT /api/auth/change-password",
-      },
-      products: {
-        getAll: "GET /api/products",
-        getById: "GET /api/products/:id",
-        create: "POST /api/products (Admin)",
-        update: "PUT /api/products/:id (Admin)",
-        delete: "DELETE /api/products/:id (Admin)",
-      },
-      cart: {
-        add: "POST /api/cart/add",
-        get: "GET /api/cart",
-        update: "PUT /api/cart/update",
-        remove: "DELETE /api/cart/remove/:productId",
-        clear: "DELETE /api/cart/clear",
-      },
+      auth: "/api/auth",
+      products: "/api/products",
+      cart: "/api/cart",
+      orders: "/api/orders",
+      payments: "/api/payments",
+      search: "/api/search",
+      websocket: `ws://localhost:${PORT}`,
     },
   });
 });
@@ -128,13 +119,17 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    app.listen(PORT, () => {
+    // Initialize Socket.io
+    initializeSocket(server);
+
+    server.listen(PORT, () => {
       console.log(`\n${"=".repeat(60)}`);
       console.log(`🚀 E-COMMERCE AI ENGINE STARTED`);
       console.log(`${"=".repeat(60)}`);
       console.log(`📍 URL: http://localhost:${PORT}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV || "development"}`);
       console.log(`📦 Database: ${mongoose.connection.name}`);
+      console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
       console.log(`${"=".repeat(60)}\n`);
       
       console.log(`📋 AVAILABLE ENDPOINTS:\n`);
@@ -142,6 +137,10 @@ const startServer = async () => {
       console.log(`   🔐  Auth      → /api/auth`);
       console.log(`   📦  Products  → /api/products`);
       console.log(`   🛒  Cart      → /api/cart`);
+      console.log(`   📦  Orders    → /api/orders`);
+      console.log(`   💳  Payment   → /api/payments`);
+      console.log(`   🔍  Search    → /api/search`);
+      console.log(`   🔌  WebSocket → ws://localhost:${PORT}`);
       console.log(`\n${"=".repeat(60)}`);
       console.log(`✅ API ready to accept requests\n`);
     });

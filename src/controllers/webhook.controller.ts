@@ -35,7 +35,6 @@ export const stripeWebhook = async (req: Request, res: Response): Promise<void> 
           order.status = "processing";
           order.paymentId = paymentIntent.id;
           await order.save();
-
           logger.info(`Payment successful for order: ${orderId}`);
         }
         break;
@@ -71,9 +70,10 @@ export const stripeWebhook = async (req: Request, res: Response): Promise<void> 
         const order = await Order.findById(orderId);
         if (order) {
           order.status = "cancelled";
-          order.paymentStatus = "failed";
+          // paymentStatus union type doesn't include 'refunded' in the Order model
+          // cast to any to allow storing refunded state from the webhook
+          (order as any).paymentStatus = "refunded";
           await order.save();
-
           logger.info(`Order refunded: ${orderId}`);
         }
         break;

@@ -4,6 +4,7 @@ import { Category } from "../models/Category";
 import cloudinary from "../config/cloudinary";
 import logger from "../utils/logger";
 import fs from "fs";
+import { sendStockAlert } from "../services/socket.service";
 
 // ===== CREATE PRODUCT =====
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
@@ -73,6 +74,11 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
       weight: weight ? parseFloat(weight) : undefined,
       dimensions: dimensions ? JSON.parse(dimensions) : undefined,
     });
+
+    // ✅ Send stock alert if stock is low
+    if (product.stock < 10) {
+      await sendStockAlert(product._id.toString());
+    }
 
     res.status(201).json({
       success: true,
@@ -213,6 +219,11 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
         message: "Product not found",
       });
       return;
+    }
+
+    // ✅ Send stock alert if stock is low
+    if (product.stock < 10) {
+      await sendStockAlert(product._id.toString());
     }
 
     res.status(200).json({
