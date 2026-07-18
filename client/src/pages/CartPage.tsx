@@ -1,23 +1,35 @@
-import { useState, useEffect } from 'react'
+import { memo, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
 import Button from '../components/Button'
-import LoadingSpinner from '../components/LoadingSpinner'
+import ProductImage from '../components/ProductImage'
 
-export default function CartPage() {
+function CartPage() {
   const { items, removeFromCart, updateQuantity, cartTotal } = useCart()
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    setLoading(false)
-  }, [])
+  const handleRemove = useCallback(
+    (id: string) => () => removeFromCart(id),
+    [removeFromCart],
+  )
 
-  if (loading) return <LoadingSpinner />
+  const handleDecrease = useCallback(
+    (id: string, qty: number) => () => updateQuantity(id, qty - 1),
+    [updateQuantity],
+  )
+
+  const handleIncrease = useCallback(
+    (id: string, qty: number) => () => updateQuantity(id, qty + 1),
+    [updateQuantity],
+  )
 
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8">
         <h1 className="mb-6 text-3xl font-bold text-gray-900">Shopping Cart</h1>
-        <p className="text-gray-600">Your cart is empty.</p>
+        <p className="mb-4 text-gray-600">Your cart is empty.</p>
+        <Link to="/" className="text-sm font-medium text-gray-900 underline hover:text-gray-600">
+          Browse Products
+        </Link>
       </div>
     )
   }
@@ -32,13 +44,12 @@ export default function CartPage() {
             key={item.product.id}
             className="rounded-lg border border-gray-200 p-4"
           >
-            {/* Top row: image + info + remove */}
             <div className="flex items-start gap-4">
               <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:h-20 sm:w-20">
-                <img
+                <ProductImage
                   src={item.product.imageUrl}
                   alt={item.product.name}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full"
                 />
               </div>
 
@@ -53,7 +64,7 @@ export default function CartPage() {
 
               <button
                 type="button"
-                onClick={() => removeFromCart(item.product.id)}
+                onClick={handleRemove(item.product.id)}
                 className="flex-shrink-0 text-sm text-red-600 transition hover:text-red-800"
                 aria-label={`Remove ${item.product.name} from cart`}
               >
@@ -61,16 +72,14 @@ export default function CartPage() {
               </button>
             </div>
 
-            {/* Bottom row: quantity + line total */}
             <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() =>
-                    updateQuantity(item.product.id, item.quantity - 1)
-                  }
+                  onClick={handleDecrease(item.product.id, item.quantity)}
+                  disabled={item.quantity <= 1}
                   aria-label="Decrease quantity"
-                  className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-gray-700 transition hover:bg-gray-50"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   &minus;
                 </button>
@@ -79,11 +88,10 @@ export default function CartPage() {
                 </span>
                 <button
                   type="button"
-                  onClick={() =>
-                    updateQuantity(item.product.id, item.quantity + 1)
-                  }
+                  onClick={handleIncrease(item.product.id, item.quantity)}
+                  disabled={item.quantity >= (item.product.stock ?? Infinity)}
                   aria-label="Increase quantity"
-                  className="flex h-8 w-8 items-center justify-center rounded border border-gray-300 text-gray-700 transition hover:bg-gray-50"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   +
                 </button>
@@ -104,9 +112,12 @@ export default function CartPage() {
             ${cartTotal.toFixed(2)}
           </p>
         </div>
+        <p className="mt-4 text-center text-xs text-gray-500">
+          Checkout coming soon — Week 3
+        </p>
         <Button
           disabled
-          className="mt-6 w-full opacity-50"
+          className="mt-2 w-full opacity-50"
         >
           Proceed to Checkout
         </Button>
@@ -114,3 +125,5 @@ export default function CartPage() {
     </div>
   )
 }
+
+export default memo(CartPage)

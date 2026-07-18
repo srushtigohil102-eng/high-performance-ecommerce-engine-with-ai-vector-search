@@ -5,6 +5,16 @@ export interface Product {
   description: string
   imageUrl: string
   category: string
+  stock?: number
+}
+
+export interface ProductPayload {
+  name: string
+  price: number
+  description: string
+  imageUrl: string
+  category: string
+  stock?: number
 }
 
 export interface User {
@@ -22,4 +32,19 @@ export interface CartItem {
 export interface ApiError {
   message: string
   status: number
+}
+
+export interface PaginatedResponse {
+  products: Product[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
+export interface ProductQueryParams {
+  page?: number
+  limit?: number
+  category?: string
+  search?: string
 }

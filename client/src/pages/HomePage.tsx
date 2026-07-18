@@ -1,51 +1,147 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import ProductCard from '../components/ProductCard'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorMessage from '../components/ErrorMessage'
+import Button from '../components/Button'
+import Pagination from '../components/Pagination'
 import type { Product } from '../types'
 import { getProducts } from '../services/productService'
+import { useDebounce } from '../hooks/useDebounce'
+
+const PRODUCTS_PER_PAGE = 12
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
 
-  useEffect(() => {
-    let cancelled = false
+  const [category, setCategory] = useState('')
+  const [categories, setCategories] = useState<string[]>([])
 
-    async function load() {
-      try {
-        const data = await getProducts()
-        if (!cancelled) setProducts(data)
-      } catch {
-        if (!cancelled) setError('Failed to load products. Please try again later.')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+  // --- Search (placeholder for AI semantic search in Week 3) ---
+  const [searchInput, setSearchInput] = useState('')
+  const debouncedSearch = useDebounce(searchInput, 300)
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError('')
+      const result = await getProducts({
+        page,
+        limit: PRODUCTS_PER_PAGE,
+        category: category || undefined,
+        search: debouncedSearch || undefined,
+      })
+      setProducts(result.products)
+      setTotalPages(result.totalPages)
+      setTotal(result.total)
+    } catch {
+      setError('Failed to load products. Please try again.')
+    } finally {
+      setLoading(false)
     }
+  }, [page, category, debouncedSearch])
 
-    load()
-    return () => { cancelled = true }
+  // Fetch unique categories once on mount
+  useEffect(() => {
+    getProducts({ limit: 200 })
+      .then((result) => {
+        const cats = [...new Set(result.products.map((p) => p.category))].sort()
+        setCategories(cats)
+      })
+      .catch(() => {})
   }, [])
 
-  if (loading) return <LoadingSpinner size="lg" />
+  useEffect(() => {
+    fetchProducts()
+  }, [fetchProducts])
 
-  if (error) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <ErrorMessage message={error} />
-      </div>
-    )
-  }
+  const handleCategoryChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setCategory(e.target.value)
+  }, [])
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="mb-8 text-3xl font-bold text-gray-900">Products</h1>
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
+      <h1 className="mb-6 text-3xl font-bold text-gray-900">Products</h1>
+
+      {/* Filters & Search Bar */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
+        {/* Category filter */}
+        <select
+          value={category}
+          onChange={handleCategoryChange}
+          className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 transition focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+          aria-label="Filter by category"
+        >
+          <option value="">All Categories</option>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
+
+        {/* Search input */}
+        {/* Placeholder for AI semantic search — real semantic search UI coming in Week 3
+            once the AI dev's vector search endpoint is ready. For now this is a simple
+            text filter by product name/description via query param or client-side fallback. */}
+        <input
+          type="text"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Search products..."
+          className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm transition placeholder:text-gray-400 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 sm:w-72"
+          aria-label="Search products"
+        />
       </div>
+
+      {/* Results count */}
+      {!loading && (
+        <p className="mb-4 text-sm text-gray-500">
+          {total} {total === 1 ? 'product' : 'products'} found
+        </p>
+      )}
+
+      {loading ? (
+        <LoadingSpinner size="lg" message="Loading products..." />
+      ) : error ? (
+        <div className="py-8">
+          <ErrorMessage message={error}>
+            <Button onClick={fetchProducts}>Retry</Button>
+          </ErrorMessage>
+        </div>
+      ) : products.length === 0 ? (
+        <div className="py-12 text-center">
+          <p className="mb-2 text-lg font-medium text-gray-900">No products found</p>
+          <p className="mb-4 text-sm text-gray-500">
+            {searchInput || category
+              ? 'Try adjusting your search or filter to find what you\'re looking for.'
+              : 'No products are available right now. Check back soon!'}
+          </p>
+          {(searchInput || category) && (
+            <button
+              type="button"
+              onClick={() => { setSearchInput(''); setCategory('') }}
+              className="text-sm font-medium text-gray-900 underline hover:text-gray-600"
+            >
+              Clear all filters
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+
+          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+        </>
+      )}
     </div>
   )
 }
