@@ -6,7 +6,6 @@ import Button from '../components/Button'
 import Pagination from '../components/Pagination'
 import type { Product } from '../types'
 import { getProducts } from '../services/productService'
-import { useDebounce } from '../hooks/useDebounce'
 
 const PRODUCTS_PER_PAGE = 12
 
@@ -21,10 +20,6 @@ export default function HomePage() {
   const [category, setCategory] = useState('')
   const [categories, setCategories] = useState<string[]>([])
 
-  // --- Search (placeholder for AI semantic search in Week 3) ---
-  const [searchInput, setSearchInput] = useState('')
-  const debouncedSearch = useDebounce(searchInput, 300)
-
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true)
@@ -33,7 +28,6 @@ export default function HomePage() {
         page,
         limit: PRODUCTS_PER_PAGE,
         category: category || undefined,
-        search: debouncedSearch || undefined,
       })
       setProducts(result.products)
       setTotalPages(result.totalPages)
@@ -43,7 +37,7 @@ export default function HomePage() {
     } finally {
       setLoading(false)
     }
-  }, [page, category, debouncedSearch])
+  }, [page, category])
 
   // Fetch unique categories once on mount
   useEffect(() => {
@@ -67,9 +61,8 @@ export default function HomePage() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <h1 className="mb-6 text-3xl font-bold text-gray-900">Products</h1>
 
-      {/* Filters & Search Bar */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
-        {/* Category filter */}
+      {/* Category filter */}
+      <div className="mb-6">
         <select
           value={category}
           onChange={handleCategoryChange}
@@ -83,19 +76,6 @@ export default function HomePage() {
             </option>
           ))}
         </select>
-
-        {/* Search input */}
-        {/* Placeholder for AI semantic search — real semantic search UI coming in Week 3
-            once the AI dev's vector search endpoint is ready. For now this is a simple
-            text filter by product name/description via query param or client-side fallback. */}
-        <input
-          type="text"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Search products..."
-          className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm transition placeholder:text-gray-400 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 sm:w-72"
-          aria-label="Search products"
-        />
       </div>
 
       {/* Results count */}
@@ -117,17 +97,17 @@ export default function HomePage() {
         <div className="py-12 text-center">
           <p className="mb-2 text-lg font-medium text-gray-900">No products found</p>
           <p className="mb-4 text-sm text-gray-500">
-            {searchInput || category
-              ? 'Try adjusting your search or filter to find what you\'re looking for.'
+            {category
+              ? 'Try adjusting your filter or browse all products.'
               : 'No products are available right now. Check back soon!'}
           </p>
-          {(searchInput || category) && (
+          {category && (
             <button
               type="button"
-              onClick={() => { setSearchInput(''); setCategory('') }}
+              onClick={() => setCategory('')}
               className="text-sm font-medium text-gray-900 underline hover:text-gray-600"
             >
-              Clear all filters
+              Clear filter
             </button>
           )}
         </div>

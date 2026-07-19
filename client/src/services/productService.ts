@@ -2,6 +2,34 @@ import type { Product, ProductPayload, PaginatedResponse, ProductQueryParams } f
 import { apiClient } from './apiClient'
 import { mockProducts } from '../data/mockProducts'
 
+export async function searchProducts(
+  query: string,
+  params: { page?: number; limit?: number } = {},
+): Promise<PaginatedResponse> {
+  if (!query.trim()) {
+    return getProducts(params)
+  }
+
+  try {
+    const { data } = await apiClient.get<PaginatedResponse>('/search', {
+      params: { q: query, ...params },
+    })
+    return {
+      products: (data.products ?? []).map(normalizeProduct),
+      total: data.total ?? 0,
+      page: data.page ?? params.page ?? 1,
+      limit: data.limit ?? params.limit ?? 12,
+      totalPages: data.totalPages ?? 1,
+    }
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.warn('[searchProducts] API unavailable, falling back to mock filter', err)
+      return filterMockProducts(mockProducts, { search: query, ...params })
+    }
+    throw new Error('Search failed. Please try again later.')
+  }
+}
+
 interface ProductResponse {
   id?: string
   _id?: string

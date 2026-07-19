@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
 import { useAuth } from '../hooks/useAuth'
+import SearchBar from './SearchBar'
 
 export default function Navbar() {
   const navigate = useNavigate()
@@ -33,6 +34,7 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden items-center gap-6 md:flex">
+          <SearchBar className="w-64" />
           <NavLink to="/" end className={linkClass}>
             Home
           </NavLink>
@@ -82,6 +84,7 @@ export default function Navbar() {
       {/* Mobile dropdown */}
       {mobileOpen && (
         <div id="mobile-menu" className="flex flex-col gap-2 border-t border-gray-200 px-4 py-4 md:hidden">
+          <SearchBar className="mb-2" />
           <NavLink to="/" end className={linkClass} onClick={closeMobile}>
             Home
           </NavLink>

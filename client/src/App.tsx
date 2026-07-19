@@ -6,6 +6,7 @@ import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './pages/HomePage'
 import ProductDetailPage from './pages/ProductDetailPage'
+import SearchResultsPage from './pages/SearchResultsPage'
 import CartPage from './pages/CartPage'
 import LoginPage from './pages/LoginPage'
 import AdminPage from './pages/AdminPage'
@@ -20,6 +21,7 @@ export default function App() {
             <Routes>
             <Route element={<Layout />}>
               <Route path="/" element={<HomePage />} />
+              <Route path="/search" element={<SearchResultsPage />} />
               <Route path="/product/:id" element={<ProductDetailPage />} />
               <Route path="/cart" element={<CartPage />} />
               <Route path="/login" element={<LoginPage />} />
