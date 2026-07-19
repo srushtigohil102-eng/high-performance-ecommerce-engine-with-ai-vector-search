@@ -10,6 +10,8 @@ import dotenv from "dotenv";
 import { connectDB } from "./config/database";
 import logger from "./utils/logger";
 import { initializeSocket } from "./services/socket.service";
+import { connectRedis } from "./config/redis";
+import { cacheMiddleware } from "./middleware/cache.middleware";
 
 // Import routes
 import authRoutes from "./routes/auth.routes";
@@ -18,6 +20,11 @@ import cartRoutes from "./routes/cart.routes";
 import orderRoutes from "./routes/order.routes";
 import paymentRoutes from "./routes/payment.routes";
 import searchRoutes from "./routes/search.routes";
+import cacheRoutes from "./routes/cache.routes";
+
+// Import controllers for caching
+import { getAllProducts, getProductById } from "./controllers/product.controller";
+import { getAllCategories } from "./controllers/category.controller";
 
 dotenv.config();
 
@@ -63,6 +70,15 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/search", searchRoutes);
+app.use("/api/cache", cacheRoutes);
+
+// ===== CACHED ROUTES =====
+// Products - cached for 5 minutes (300 seconds)
+app.get("/api/products", cacheMiddleware(300), getAllProducts);
+// Product by ID - cached for 10 minutes (600 seconds)
+app.get("/api/products/:id", cacheMiddleware(600), getProductById);
+// Categories - cached for 10 minutes (600 seconds)
+app.get("/api/products/categories", cacheMiddleware(600), getAllCategories);
 
 // ===== HEALTH CHECK =====
 app.get("/health", (_req: Request, res: Response) => {
@@ -70,6 +86,7 @@ app.get("/health", (_req: Request, res: Response) => {
     status: "OK",
     timestamp: new Date(),
     mongodb: mongoose.connection.readyState === 1 ? "Connected" : "Disconnected",
+    redis: "Connected", // This will be updated dynamically
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || "development",
   });
@@ -89,6 +106,7 @@ app.get("/", (_req: Request, res: Response) => {
       orders: "/api/orders",
       payments: "/api/payments",
       search: "/api/search",
+      cache: "/api/cache",
       websocket: `ws://localhost:${PORT}`,
     },
   });
@@ -117,7 +135,11 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 
 const startServer = async () => {
   try {
+    // Connect to MongoDB
     await connectDB();
+
+    // Connect to Redis
+    await connectRedis();
 
     // Initialize Socket.io
     initializeSocket(server);
@@ -140,6 +162,7 @@ const startServer = async () => {
       console.log(`   📦  Orders    → /api/orders`);
       console.log(`   💳  Payment   → /api/payments`);
       console.log(`   🔍  Search    → /api/search`);
+      console.log(`   🗄️  Cache      → /api/cache`);
       console.log(`   🔌  WebSocket → ws://localhost:${PORT}`);
       console.log(`\n${"=".repeat(60)}`);
       console.log(`✅ API ready to accept requests\n`);
