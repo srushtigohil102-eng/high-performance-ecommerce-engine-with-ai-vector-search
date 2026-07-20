@@ -4,6 +4,7 @@ import { Cart } from "../models/Cart";
 import { Product } from "../models/Product";
 import logger from "../utils/logger";
 import { sendOrderNotification, sendOrderStatusUpdate } from "../services/socket.service";
+import { emailQueue } from "../config/queue";
 
 // ===== CREATE ORDER FROM CART =====
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
@@ -78,6 +79,14 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       status: "pending",
       paymentStatus: "pending",
     });
+
+    await emailQueue.add({
+  type: "order_confirmation",
+  data: {
+    to: req.user?.email,
+    order: order,
+  },
+});
 
     // Clear cart
     await Cart.findOneAndUpdate({ user: userId }, { items: [] });

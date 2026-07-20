@@ -13,6 +13,7 @@ import { initializeSocket } from "./services/socket.service";
 import { connectRedis } from "./config/redis";
 import { cacheMiddleware } from "./middleware/cache.middleware";
 
+
 // Import routes
 import authRoutes from "./routes/auth.routes";
 import productRoutes from "./routes/product.routes";
@@ -20,7 +21,23 @@ import cartRoutes from "./routes/cart.routes";
 import orderRoutes from "./routes/order.routes";
 import paymentRoutes from "./routes/payment.routes";
 import searchRoutes from "./routes/search.routes";
-import cacheRoutes from "./routes/cache.routes";
+// queue.routes is optional; if not present, skip mounting queue routes
+let queueRoutes: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  queueRoutes = require("./routes/queue.routes").default;
+} catch (err) {
+  // ignore if file doesn't exist
+}
+
+// cache.routes is optional; if not present, skip mounting cache routes
+let cacheRoutes: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  cacheRoutes = require("./routes/cache.routes").default;
+} catch (err) {
+  // ignore if file doesn't exist
+}
 
 // Import controllers for caching
 import { getAllProducts, getProductById } from "./controllers/product.controller";
@@ -70,7 +87,10 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/search", searchRoutes);
-app.use("/api/cache", cacheRoutes);
+app.use("/api/queue", queueRoutes);
+if (cacheRoutes) {
+  app.use("/api/cache", cacheRoutes);
+}
 
 // ===== CACHED ROUTES =====
 // Products - cached for 5 minutes (300 seconds)
@@ -162,7 +182,7 @@ const startServer = async () => {
       console.log(`   📦  Orders    → /api/orders`);
       console.log(`   💳  Payment   → /api/payments`);
       console.log(`   🔍  Search    → /api/search`);
-      console.log(`   🗄️  Cache      → /api/cache`);
+      if (cacheRoutes) console.log(`   🗄️  Cache      → /api/cache`);
       console.log(`   🔌  WebSocket → ws://localhost:${PORT}`);
       console.log(`\n${"=".repeat(60)}`);
       console.log(`✅ API ready to accept requests\n`);
