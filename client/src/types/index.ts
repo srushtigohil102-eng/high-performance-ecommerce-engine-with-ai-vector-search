@@ -48,3 +48,16 @@ export interface ProductQueryParams {
   category?: string
   search?: string
 }
+
+export interface DiscountCode {
+  code: string
+  discountAmount: number
+  description: string
+}
+
+export interface CartSummary {
+  subtotal: number
+  discountAmount: number
+  total: number
+  discount: DiscountCode | null
+}

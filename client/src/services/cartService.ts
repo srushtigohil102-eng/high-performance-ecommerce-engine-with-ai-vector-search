@@ -1,4 +1,4 @@
-import type { CartItem } from '../types'
+import type { CartItem, DiscountCode, CartSummary } from '../types'
 import { apiClient } from './apiClient'
 
 interface BackendCartItem {
@@ -51,4 +51,18 @@ export async function updateCartItemBackend(productId: string, quantity: number)
 
 export async function removeCartItemBackend(productId: string): Promise<void> {
   await apiClient.delete(`/cart/${productId}`)
+}
+
+export async function applyDiscountBackend(code: string): Promise<DiscountCode> {
+  const { data } = await apiClient.post<{ discount: DiscountCode }>('/cart/discount', { code })
+  return data.discount
+}
+
+export async function removeDiscountBackend(): Promise<void> {
+  await apiClient.delete('/cart/discount')
+}
+
+export async function getCartSummaryBackend(): Promise<CartSummary> {
+  const { data } = await apiClient.get<CartSummary>('/cart/summary')
+  return data
 }
