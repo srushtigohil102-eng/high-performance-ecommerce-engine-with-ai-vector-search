@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IProduct extends Document {
   name: string;
-  slug: string;
+  slug?: string;
   description: string;
   price: number;
   comparePrice?: number;
@@ -24,7 +24,6 @@ export interface IProduct extends Document {
     comment: string;
     createdAt: Date;
   }>;
-  // AI Vector Embedding (for vector search)
   embedding?: number[];
   embeddingVersion?: number;
   isActive: boolean;
@@ -42,7 +41,6 @@ const ProductSchema = new Schema<IProduct>(
     },
     slug: {
       type: String,
-      required: true,
       unique: true,
       lowercase: true,
       trim: true,
@@ -110,7 +108,7 @@ const ProductSchema = new Schema<IProduct>(
         createdAt: { type: Date, default: Date.now },
       },
     ],
-    // AI Vector Embedding - for vector search
+    // AI Vector Embedding for semantic search
     embedding: {
       type: [Number],
       // MongoDB Atlas Vector Search index will be created separately
@@ -129,7 +127,7 @@ const ProductSchema = new Schema<IProduct>(
   }
 );
 
-// Indexes
+// ===== INDEXES =====
 ProductSchema.index({ name: 1 });
 ProductSchema.index({ category: 1 });
 ProductSchema.index({ price: 1 });
@@ -137,7 +135,7 @@ ProductSchema.index({ sku: 1 });
 ProductSchema.index({ tags: 1 });
 ProductSchema.index({ isActive: 1 });
 
-// Text index for search
+// Text index for full-text search
 ProductSchema.index({
   name: "text",
   description: "text",
@@ -145,23 +143,51 @@ ProductSchema.index({
   tags: "text",
 });
 
+// Compound index for price filtering
+ProductSchema.index({ category: 1, price: 1 });
+ProductSchema.index({ isActive: 1, stock: 1 });
+
+// ===== VIRTUALS =====
+
 // Virtual for discounted price
 ProductSchema.virtual("discountedPrice").get(function () {
   if (this.comparePrice && this.comparePrice > this.price) {
-    return this.comparePrice;
+    return this.price;
   }
   return this.price;
 });
 
-// Pre-save middleware to generate slug
+// Virtual for inStock status
+ProductSchema.virtual("inStock").get(function () {
+  return this.stock > 0;
+});
+
+// ===== PRE-SAVE MIDDLEWARE =====
+
+// Generate slug from name
 ProductSchema.pre("save", function (next) {
-  if (this.isModified("name")) {
+  if (this.isModified("name") || !this.slug) {
     this.slug = this.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
   }
   next();
+});
+
+// ===== POST-SAVE MIDDLEWARE (For Stock Alerts) =====
+ProductSchema.post("save", async function (doc) {
+  // If stock is low (less than 10), trigger stock alert
+  if (doc.stock < 10 && doc.isActive) {
+    try {
+      // Import dynamically to avoid circular dependency
+      const { sendStockAlert } = await import("../services/socket.service");
+      await sendStockAlert(doc._id.toString());
+    } catch (error) {
+      // Silently fail if socket service is not available
+      console.log("Stock alert not sent (socket service not available)");
+    }
+  }
 });
 
 export const Product = mongoose.model<IProduct>("Product", ProductSchema);
