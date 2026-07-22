@@ -46,6 +46,11 @@ export default function Navbar() {
               </span>
             )}
           </NavLink>
+          {isAuthenticated && (
+            <NavLink to="/orders" className={linkClass}>
+              My Orders
+            </NavLink>
+          )}
           {isAuthenticated && user?.role === 'admin' && (
             <NavLink to="/admin" className={linkClass}>
               Admin
@@ -96,6 +101,11 @@ export default function Navbar() {
               </span>
             )}
           </NavLink>
+          {isAuthenticated && (
+            <NavLink to="/orders" className={linkClass} onClick={closeMobile}>
+              My Orders
+            </NavLink>
+          )}
           {isAuthenticated && user?.role === 'admin' && (
             <NavLink to="/admin" className={linkClass} onClick={closeMobile}>
               Admin

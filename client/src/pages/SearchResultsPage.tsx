@@ -5,8 +5,11 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorMessage from '../components/ErrorMessage'
 import Button from '../components/Button'
 import Pagination from '../components/Pagination'
+import { mockProducts } from '../data/mockProducts'
 import type { Product } from '../types'
 import { searchProducts } from '../services/productService'
+
+const POPULAR_PRODUCTS = mockProducts.slice(0, 4)
 
 const RESULTS_PER_PAGE = 12
 
@@ -95,19 +98,47 @@ export default function SearchResultsPage() {
           </Link>
         </div>
       ) : products.length === 0 ? (
-        <div className="py-12 text-center">
-          <p className="mb-2 text-lg font-medium text-gray-900">
-            No products found for &lsquo;{query.trim()}&rsquo;
-          </p>
-          <p className="mb-4 text-sm text-gray-500">
-            Try a different search term or browse categories instead.
-          </p>
-          <Link
-            to="/"
-            className="text-sm font-medium text-gray-900 underline hover:text-gray-600"
-          >
-            Browse all products
-          </Link>
+        <div className="py-12">
+          <div className="mb-8 text-center">
+            <svg
+              className="mx-auto mb-4 h-12 w-12 text-gray-300"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+            <p className="mb-2 text-lg font-medium text-gray-900">
+              No products found for &lsquo;{query.trim()}&rsquo;
+            </p>
+            <p className="mb-6 text-sm text-gray-500">
+              Try rephrasing your search or check out some suggestions below.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link to="/">
+                <Button variant="secondary">Browse All Products</Button>
+              </Link>
+              <Link to="/?category=Electronics">
+                <Button variant="outline">Electronics</Button>
+              </Link>
+              <Link to="/?category=Clothing">
+                <Button variant="outline">Clothing</Button>
+              </Link>
+              <Link to="/?category=Accessories">
+                <Button variant="outline">Accessories</Button>
+              </Link>
+            </div>
+          </div>
+
+          <div>
+            <h2 className="mb-4 text-lg font-semibold text-gray-900">Popular Products</h2>
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {POPULAR_PRODUCTS.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
         </div>
       ) : (
         <>
