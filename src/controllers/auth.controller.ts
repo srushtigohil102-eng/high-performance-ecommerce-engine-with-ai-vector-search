@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { User } from "../models/User";
 import { generateToken } from "../utils/jwt";
 import logger from "../utils/logger";
+import { sendWelcomeEmail } from "../services/email.service";
+import { emailQueue } from "../config/queue";
 
 // ===== REGISTER =====
 export const register = async (req: Request, res: Response): Promise<void> => {
@@ -26,6 +28,22 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     });
 
     const token = generateToken(user);
+
+    // ✅ SEND WELCOME EMAIL (Direct)
+    await sendWelcomeEmail(user);
+
+    // ✅ SEND WELCOME EMAIL (Queue)
+    await emailQueue.add({
+      type: "welcome",
+      data: { 
+        user: {
+          id: user._id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+        }
+      },
+    });
 
     res.status(201).json({
       success: true,

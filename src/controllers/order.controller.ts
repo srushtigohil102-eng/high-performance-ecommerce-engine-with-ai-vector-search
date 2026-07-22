@@ -5,6 +5,7 @@ import { Product } from "../models/Product";
 import logger from "../utils/logger";
 import { sendOrderNotification, sendOrderStatusUpdate } from "../services/socket.service";
 import { emailQueue } from "../config/queue";
+import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } from "../services/email.service";
 
 // ===== CREATE ORDER FROM CART =====
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
@@ -80,19 +81,21 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       paymentStatus: "pending",
     });
 
-    await emailQueue.add({
-  type: "order_confirmation",
-  data: {
-    to: req.user?.email,
-    order: order,
-  },
-});
-
     // Clear cart
     await Cart.findOneAndUpdate({ user: userId }, { items: [] });
 
     // Populate order details
     await order.populate("items.product");
+    await order.populate("user", "firstName lastName email");
+
+    // ✅ SEND EMAIL (Direct)
+    await sendOrderConfirmationEmail(order);
+
+    // ✅ SEND EMAIL (Queue - optional, you can choose either)
+    await emailQueue.add({
+      type: "order_confirmation",
+      data: { order },
+    });
 
     // ✅ SEND REAL-TIME NOTIFICATION
     await sendOrderNotification(order._id.toString(), userId);
@@ -250,6 +253,10 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
     await order.save();
 
     await order.populate("items.product");
+    await order.populate("user", "firstName lastName email");
+
+    // ✅ SEND EMAIL STATUS UPDATE
+    await sendOrderStatusUpdateEmail(order, status);
 
     // ✅ SEND REAL-TIME STATUS UPDATE
     await sendOrderStatusUpdate(order._id.toString(), status);
