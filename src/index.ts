@@ -22,6 +22,8 @@ import orderRoutes from "./routes/order.routes";
 import paymentRoutes from "./routes/payment.routes";
 import searchRoutes from "./routes/search.routes";
 import reportRoutes from './routes/report.routes';
+import dashboardRoutes from "./routes/dashboard.routes";
+
 
 // queue.routes is optional; if not present, skip mounting queue routes
 let queueRoutes: any = null;
@@ -90,6 +92,7 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/search", searchRoutes);
 app.use('/api/reports', reportRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/queue", queueRoutes);
 if (cacheRoutes) {
   app.use("/api/cache", cacheRoutes);
