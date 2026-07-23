@@ -10,6 +10,7 @@ import {
 } from 'react'
 import type { CartItem, Product, DiscountCode, CartSummary } from '../types'
 import { useAuth } from '../hooks/useAuth'
+import { useToast } from '../hooks/useToast'
 import {
   syncCartToBackend,
   fetchCartFromBackend,
@@ -76,6 +77,7 @@ export function CartProvider({ children }: CartProviderProps) {
   const [discountLoading, setDiscountLoading] = useState(false)
 
   const { isAuthenticated } = useAuth()
+  const { showToast } = useToast()
   const didSyncRef = useRef(false)
   const itemsRef = useRef(items)
   itemsRef.current = items
@@ -116,8 +118,9 @@ export function CartProvider({ children }: CartProviderProps) {
       await syncCartToBackend(nextItems)
     } catch {
       setItems(itemsRef.current)
+      showToast('Failed to sync cart with server. Changes saved locally.', 'error')
     }
-  }, [])
+  }, [showToast])
 
   const removeFromCart = useCallback(async (productId: string) => {
     const prevSnapshot = itemsRef.current
@@ -127,8 +130,9 @@ export function CartProvider({ children }: CartProviderProps) {
       await removeCartItemBackend(productId)
     } catch {
       setItems(prevSnapshot)
+      showToast('Failed to sync cart with server. Changes saved locally.', 'error')
     }
-  }, [])
+  }, [showToast])
 
   const updateQuantity = useCallback(async (productId: string, quantity: number) => {
     const prevSnapshot = itemsRef.current
@@ -149,13 +153,15 @@ export function CartProvider({ children }: CartProviderProps) {
         }
       } catch {
         setItems(prevSnapshot)
+        showToast('Failed to sync cart with server. Changes saved locally.', 'error')
       }
     })
-  }, [wrapUpdating])
+  }, [wrapUpdating, showToast])
 
   const clearCart = useCallback(() => {
     setItems([])
     setDiscount(null)
+    syncCartToBackend([]).catch(() => {})
   }, [])
 
   const applyDiscountCode = useCallback(async (code: string) => {
@@ -212,9 +218,11 @@ export function CartProvider({ children }: CartProviderProps) {
         })
         didSyncRef.current = true
       })
-      .catch(() => {})
+      .catch(() => {
+        showToast('Could not sync your saved cart.', 'error')
+      })
       .finally(() => setIsLoading(false))
-  }, [isAuthenticated])
+  }, [isAuthenticated, showToast])
 
   useEffect(() => {
     if (!isAuthenticated) {

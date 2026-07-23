@@ -2,7 +2,7 @@
 
 React-based e-commerce frontend with AI-powered vector search, built as part of a high-performance e-commerce engine.
 
-> **Mid Review (Week 1 + Week 2)** — All features below are complete and demo-ready.
+> **Week 3 Complete** — All core commerce flows (search, cart, checkout, orders) are built and stabilized.
 
 ---
 
@@ -15,7 +15,7 @@ cp .env.example .env        # set VITE_API_URL=http://localhost:5000/api
 npm run dev                  # opens at http://localhost:5173
 ```
 
-**Backend dependency:** The frontend connects to an Express/MongoDB backend on `http://localhost:5000`. Without it, product listing/detail pages fall back to 12 mock products. Cart, auth, and admin CRUD require the backend to be running.
+**Backend dependency:** The frontend connects to an Express/MongoDB backend on `http://localhost:5000`. Without it, product listing/detail pages fall back to 12 mock products. Cart, auth, checkout, orders, and search require the backend to be running.
 
 ### Available Scripts
 
@@ -74,12 +74,16 @@ npm run dev                  # opens at http://localhost:5173
 - Empty cart state with "Browse Products" link
 - Backend sync: optimistic UI updates with rollback on API failure
 - Cart merge on login (local + remote, takes higher quantity per product)
+- Per-item loading overlay during quantity updates
+- Discount code input with apply/remove functionality
+- Checkout blocking when items are out of stock or over stock limit
 
 ### Authentication (`/login`)
 - JWT-based login via `POST /auth/login`
 - Client-side form validation (email format, password min 8 chars)
 - Error display with dismiss button
 - Session expired banner (shown after 401 redirect)
+- Return-to URL support (`?returnTo=/checkout`) for post-login redirect
 - Redirect to admin dashboard for admin users, home for customers
 - Token persistence in localStorage with auto-clear on logout
 - Auto-parse JWT for user info (id, name, email, role)
@@ -105,24 +109,65 @@ npm run dev                  # opens at http://localhost:5173
 
 ---
 
+## Week 3 — Completed Features
+
+### AI Semantic Search (`/search`)
+- Full-page search results with `GET /search?q=<query>` (vector/embedding-powered)
+- "AI-powered semantic search" badge on results page
+- Empty query state with example suggestions
+- Zero-results state with category quick-links and popular products
+- Pagination for search results
+- Retry button on search errors
+
+### Cart Backend Integration
+- Full cart sync to backend via `POST /cart` on every mutation
+- Optimistic UI updates with automatic rollback on backend failure
+- Toast notifications on sync failure ("Failed to sync cart with server")
+- Cart merge on login (local + remote, takes higher quantity per product)
+- Discount code backend integration: `POST /cart/discount`, `DELETE /cart/discount`
+- Per-item loading overlay during individual quantity updates
+- Out-of-stock and over-stock detection with checkout blocking
+
+### Checkout Flow (`/checkout`)
+- Shipping address form with client-side validation (name, address, city, state, postal code, phone)
+- US postal code format validation (`12345` or `12345-6789`)
+- Payment method selection: Cash on Delivery or Mock Card
+- Order summary sidebar with line items, subtotal, discount, total
+- Auth guard: requires login to complete checkout (with return-to URL preservation)
+- Submit button with loading spinner during order placement
+- Error banner with server message on order failure (cart preserved for retry)
+- Checkout blocked when cart items are out of stock
+
+### Order Management
+- **Order Confirmation** (`/order-confirmation/:orderId`): Success header with checkmark, order details, items, pricing, shipping, payment info
+- **Order History** (`/orders`): List of all orders with status badges, dates, item counts, totals; empty state with "Start Shopping" CTA
+- **Order Detail** (`/orders/:orderId`): Full order view with items, pricing breakdown (subtotal, discount, total), shipping address, payment method
+- Auth-protected: redirects to login if not authenticated
+- Loading, error (with retry), and empty states on all order pages
+- Status badges color-coded: pending (yellow), confirmed/processing (blue), shipped (purple), delivered (green), cancelled (red)
+
+---
+
 ## Architecture
 
 ```
 src/
-├── components/       13 reusable UI components
+├── components/       14 reusable UI components
 ├── context/          3 React context providers (Cart, Auth, Toast)
-├── data/             Mock data fallback (mockProducts.ts)
+├── data/             Mock data fallback (mockProducts.ts, mockOrders.ts)
 ├── hooks/            4 custom hooks (useCart, useAuth, useToast, useDebounce)
-├── pages/            6 route-level page components
-├── services/         API client + auth/product/cart services
+├── pages/            11 route-level page components
+├── services/         API client + auth/product/cart/order services (6 files)
 └── types/            Shared TypeScript interfaces
 ```
 
 **Provider nesting:** `BrowserRouter` → `AuthProvider` → `ToastProvider` → `CartProvider` → `Routes`
 
-**Service layer:** Pages call `productService`, `authService`, `cartService` which use `apiClient` (Axios with JWT interceptor). If the backend is unavailable, product services fall back to mock data.
+**Service layer:** Pages call `productService`, `authService`, `cartService`, `orderService` which use `apiClient` (Axios with JWT interceptor). If the backend is unavailable, product services fall back to mock data.
 
-**Cart sync:** Optimistic UI (instant feedback) + async backend sync. On failure, rolls back to previous state. On login, fetches remote cart and merges with local cart.
+**Cart sync:** Optimistic UI (instant feedback) + async backend sync. On failure, rolls back to previous state and shows a toast notification. On login, fetches remote cart and merges with local cart.
+
+**Auth flow:** JWT stored in localStorage, decoded client-side for user info. Axios interceptor catches 401 responses globally and redirects to `/login?session=expired`. Checkout requires authentication with `?returnTo=` URL preservation.
 
 ---
 
@@ -135,12 +180,19 @@ src/
 | POST | `/api/products` | Create product (admin) |
 | PUT | `/api/products/:id` | Update product (admin) |
 | DELETE | `/api/products/:id` | Delete product (admin) |
+| GET | `/api/search` | AI semantic search (`?q`, `?page`, `?limit`) |
 | POST | `/api/auth/login` | Login — returns `{ token, user }` |
 | POST | `/api/auth/register` | Register — returns `{ token, user }` |
 | GET | `/api/cart` | Get user's cart |
 | POST | `/api/cart` | Sync full cart |
-| PUT | `/api/cart/:itemId` | Update cart item quantity |
-| DELETE | `/api/cart/:itemId` | Remove cart item |
+| PUT | `/api/cart/:productId` | Update cart item quantity |
+| DELETE | `/api/cart/:productId` | Remove cart item |
+| POST | `/api/cart/discount` | Apply discount code |
+| DELETE | `/api/cart/discount` | Remove discount code |
+| GET | `/api/cart/summary` | Get cart summary |
+| POST | `/api/orders` | Place order |
+| GET | `/api/orders` | Get user's order history |
+| GET | `/api/orders/:orderId` | Get single order detail |
 
 ---
 
@@ -149,9 +201,21 @@ src/
 1. **RBAC enforcement pending** — Backend role-based access control is not enforced server-side. The admin UI route guard is frontend-only. Any authenticated user could hit admin endpoints directly.
 2. **Cart cleared on logout** — Local cart state resets on logout. Remote cart persists on the backend; re-login merges automatically.
 3. **401 redirect uses full page reload** — The Axios interceptor redirects via `window.location.href`, which loses React state. Acceptable for current scope.
-4. **Search is text-based** — Filters by name/description via query params. AI semantic (vector) search is planned for Week 3.
-5. **Checkout disabled** — "Proceed to Checkout" button is disabled. Checkout flow is a Week 3 feature.
-6. **Product images** — Using placeholder images from placehold.co. Real CDN/storage images planned for Week 3.
+4. **Product images** — Using placeholder images from placehold.co. Real CDN/storage images planned for Week 4.
+5. **No registration page** — `authService.register()` is defined but no UI page exists for user registration.
+6. **Guest checkout not supported** — Checkout requires authentication. Guest checkout is out of scope for current version.
+
+---
+
+## Semantic Search — Demo Queries
+
+These queries showcase the AI vector search working well beyond plain text matching:
+
+| Query | Expected Semantic Result |
+|-------|--------------------------|
+| "warm winter jacket" | Clothing/outerwear items, even if "jacket" isn't in the product name |
+| "something to listen to music" | Headphones/earbuds without requiring the keyword "headphone" |
+| "gift for a tech lover" | Electronics accessories and gadgets |
 
 ---
 
@@ -161,12 +225,12 @@ A structured 5-minute demo walkthrough is available in [`DEMO_SCRIPT.md`](../DEM
 
 ---
 
-## Week 3 — Planned
+## Week 4 — Planned
 
-| Area | Current | Target |
-|------|---------|--------|
-| AI vector search | Text filter by name/description | Semantic search via vector embeddings |
-| Checkout | Disabled button | Address form, payment, order confirmation |
-| Product images | placehold.co placeholders | Real images from CDN/storage |
-| Order history | None | User order history page |
-| User roles | Admin only | Full customer role UI |
+| Area | Target |
+|------|--------|
+| Admin dashboard | UI polish, improved forms, responsive layout |
+| Product images | Real images from CDN/storage (replace placehold.co) |
+| User registration | Registration page with form validation |
+| Responsiveness | Mobile/tablet polish across all pages |
+| Deployment | Production build optimization, deployment prep |

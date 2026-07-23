@@ -1,8 +1,9 @@
-import { memo, useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { getOrderById } from '../services/orderService'
 import { useAuth } from '../hooks/useAuth'
 import Button from '../components/Button'
+import ErrorMessage from '../components/ErrorMessage'
 import ProductImage from '../components/ProductImage'
 import LoadingSpinner from '../components/LoadingSpinner'
 import type { Order, OrderStatus } from '../types'
@@ -29,29 +30,28 @@ function OrderDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const fetchOrder = useCallback(async () => {
+    if (!orderId) return
+    try {
+      setLoading(true)
+      setError('')
+      const data = await getOrderById(orderId)
+      setOrder(data)
+    } catch {
+      setError('Unable to load order details.')
+    } finally {
+      setLoading(false)
+    }
+  }, [orderId])
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login')
       return
     }
 
-    if (!orderId) return
-
-    let cancelled = false
-
-    getOrderById(orderId)
-      .then((data) => {
-        if (!cancelled) setOrder(data)
-      })
-      .catch(() => {
-        if (!cancelled) setError('Unable to load order details.')
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-
-    return () => { cancelled = true }
-  }, [orderId, isAuthenticated, navigate])
+    fetchOrder()
+  }, [isAuthenticated, navigate, fetchOrder])
 
   if (loading) {
     return (
@@ -65,14 +65,14 @@ function OrderDetailPage() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-8">
         <h1 className="mb-6 text-2xl font-bold text-gray-900">Order Details</h1>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-          <p className="text-sm font-medium text-red-800">{error ?? 'Order not found.'}</p>
-        </div>
-        <div className="mt-6 text-center">
-          <Link to="/orders">
-            <Button variant="secondary">Back to Orders</Button>
-          </Link>
-        </div>
+        <ErrorMessage message={error ?? 'Order not found.'}>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Button onClick={fetchOrder}>Retry</Button>
+            <Link to="/orders">
+              <Button variant="secondary">Back to Orders</Button>
+            </Link>
+          </div>
+        </ErrorMessage>
       </div>
     )
   }

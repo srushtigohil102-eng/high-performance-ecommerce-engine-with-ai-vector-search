@@ -1,6 +1,7 @@
 import { memo, useCallback, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
+import { useAuth } from '../hooks/useAuth'
 import { placeOrder } from '../services/orderService'
 import Button from '../components/Button'
 import Input from '../components/Input'
@@ -47,6 +48,7 @@ function validateShipping(s: ShippingAddress): ShippingErrors {
 
 function CheckoutPage() {
   const { items, cartSummary, discount, clearCart, isCheckoutBlocked, checkoutBlockReason } = useCart()
+  const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
 
   const [shipping, setShipping] = useState<ShippingAddress>(INITIAL_SHIPPING)
@@ -97,6 +99,30 @@ function CheckoutPage() {
       setIsSubmitting(false)
     }
   }, [shipping, paymentMethod, items, discount, clearCart, navigate])
+
+  // Require authentication to checkout
+  if (!isAuthenticated) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        <h1 className="mb-8 text-3xl font-bold text-gray-900">Checkout</h1>
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center">
+          <p className="mb-2 text-lg font-medium text-gray-900">Sign in to complete your order</p>
+          <p className="mb-6 text-sm text-gray-500">
+            You need an account to place an order. Your cart items will be preserved.
+          </p>
+          <Link to="/login?returnTo=/checkout">
+            <Button>Sign In</Button>
+          </Link>
+          <Link
+            to="/cart"
+            className="mt-3 block text-center text-sm font-medium text-gray-600 hover:text-gray-900"
+          >
+            &larr; Back to Cart
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   // Redirect to cart if empty
   if (items.length === 0 && !isSubmitting) {

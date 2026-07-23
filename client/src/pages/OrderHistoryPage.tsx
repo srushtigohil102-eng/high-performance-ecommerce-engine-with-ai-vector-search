@@ -1,8 +1,9 @@
-import { memo, useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getOrders } from '../services/orderService'
 import { useAuth } from '../hooks/useAuth'
 import Button from '../components/Button'
+import ErrorMessage from '../components/ErrorMessage'
 import LoadingSpinner from '../components/LoadingSpinner'
 import type { Order, OrderStatus } from '../types'
 
@@ -22,27 +23,27 @@ function OrderHistoryPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const fetchOrders = useCallback(async () => {
+    try {
+      setLoading(true)
+      setError('')
+      const data = await getOrders()
+      setOrders(data)
+    } catch {
+      setError('Failed to load orders. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login')
       return
     }
 
-    let cancelled = false
-
-    getOrders()
-      .then((data) => {
-        if (!cancelled) setOrders(data)
-      })
-      .catch(() => {
-        if (!cancelled) setError('Failed to load orders. Please try again.')
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-
-    return () => { cancelled = true }
-  }, [isAuthenticated, navigate])
+    fetchOrders()
+  }, [isAuthenticated, navigate, fetchOrders])
 
   if (loading) {
     return (
@@ -56,9 +57,9 @@ function OrderHistoryPage() {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8">
         <h1 className="mb-6 text-2xl font-bold text-gray-900">My Orders</h1>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
-          <p className="text-sm font-medium text-red-800">{error}</p>
-        </div>
+        <ErrorMessage message={error}>
+          <Button onClick={fetchOrders}>Retry</Button>
+        </ErrorMessage>
       </div>
     )
   }

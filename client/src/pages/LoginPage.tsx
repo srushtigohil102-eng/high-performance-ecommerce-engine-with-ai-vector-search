@@ -17,12 +17,17 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
 
   const sessionExpired = searchParams.get('session') === 'expired'
+  const returnTo = searchParams.get('returnTo')
 
   useEffect(() => {
     if (user) {
-      navigate(user.role === 'admin' ? '/admin' : '/', { replace: true })
+      if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+        navigate(returnTo, { replace: true })
+      } else {
+        navigate(user.role === 'admin' ? '/admin' : '/', { replace: true })
+      }
     }
-  }, [user, navigate])
+  }, [user, navigate, returnTo])
 
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   const isPasswordValid = password.length >= 8
