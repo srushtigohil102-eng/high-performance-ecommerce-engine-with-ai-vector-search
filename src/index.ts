@@ -12,6 +12,8 @@ import logger from "./utils/logger";
 import { initializeSocket } from "./services/socket.service";
 import { connectRedis } from "./config/redis";
 import { cacheMiddleware } from "./middleware/cache.middleware";
+import healthRoutes from "./routes/health.routes";
+
 
 
 // Import routes
@@ -93,6 +95,15 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/search", searchRoutes);
 app.use('/api/reports', reportRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+// Simple request tracker middleware (logs each request)
+const requestTracker = (req: Request, _res: Response, next: NextFunction) => {
+  logger.info(`${req.method} ${req.originalUrl}`);
+  next();
+};
+
+app.use(requestTracker);
+app.use("/api", healthRoutes);
+
 app.use("/api/queue", queueRoutes);
 if (cacheRoutes) {
   app.use("/api/cache", cacheRoutes);
