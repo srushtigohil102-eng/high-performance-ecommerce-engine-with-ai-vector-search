@@ -14,8 +14,14 @@ export async function searchProducts(
     const { data } = await apiClient.get<PaginatedResponse>('/search', {
       params: { q: query, ...params },
     })
+
+    if (import.meta.env.DEV && !data.products && !Array.isArray(data)) {
+      console.warn('[searchProducts] Unexpected search response shape:', data)
+    }
+
+    const products = Array.isArray(data) ? data : data.products ?? []
     return {
-      products: (data.products ?? []).map(normalizeProduct),
+      products: products.map(normalizeProduct),
       total: data.total ?? 0,
       page: data.page ?? params.page ?? 1,
       limit: data.limit ?? params.limit ?? 12,
@@ -42,13 +48,17 @@ interface ProductResponse {
 }
 
 function normalizeProduct(raw: ProductResponse): Product {
+  const id = raw.id ?? raw._id ?? ''
+  if (import.meta.env.DEV && !id) {
+    console.warn('[productService] Product missing id field, response shape may have changed:', raw)
+  }
   return {
-    id: raw.id ?? raw._id ?? '',
-    name: raw.name,
-    price: raw.price,
-    description: raw.description,
-    imageUrl: raw.imageUrl,
-    category: raw.category,
+    id,
+    name: raw.name ?? 'Unknown Product',
+    price: typeof raw.price === 'number' ? raw.price : 0,
+    description: raw.description ?? '',
+    imageUrl: raw.imageUrl ?? 'https://placehold.co/200x200?text=Product',
+    category: raw.category ?? '',
     stock: raw.stock,
   }
 }
@@ -97,6 +107,10 @@ export async function getProducts(
       return filterMockProducts(data.map(normalizeProduct), params)
     }
 
+    if (import.meta.env.DEV && !data.products && typeof data === 'object') {
+      console.warn('[getProducts] Unexpected products response shape:', data)
+    }
+
     return {
       products: (data.products ?? []).map(normalizeProduct),
       total: data.total ?? 0,
@@ -115,8 +129,9 @@ export async function getProducts(
 
 export async function getProductById(id: string): Promise<Product | null> {
   try {
-    const { data } = await apiClient.get<ProductResponse>(`/products/${id}`)
-    return normalizeProduct(data)
+    const { data } = await apiClient.get<ProductResponse | { product: ProductResponse }>(`/products/${id}`)
+    const raw = (data && typeof data === 'object' && 'product' in data) ? (data as { product: ProductResponse }).product : data
+    return normalizeProduct(raw)
   } catch (err) {
     if (import.meta.env.DEV) {
       console.warn('[productService] API unavailable, falling back to mock data', err)
@@ -127,13 +142,15 @@ export async function getProductById(id: string): Promise<Product | null> {
 }
 
 export async function createProduct(payload: ProductPayload): Promise<Product> {
-  const { data } = await apiClient.post<ProductResponse>('/products', payload)
-  return normalizeProduct(data)
+  const { data } = await apiClient.post<ProductResponse | { product: ProductResponse }>('/products', payload)
+  const raw = (data && typeof data === 'object' && 'product' in data) ? (data as { product: ProductResponse }).product : data
+  return normalizeProduct(raw)
 }
 
 export async function updateProduct(id: string, payload: ProductPayload): Promise<Product> {
-  const { data } = await apiClient.put<ProductResponse>(`/products/${id}`, payload)
-  return normalizeProduct(data)
+  const { data } = await apiClient.put<ProductResponse | { product: ProductResponse }>(`/products/${id}`, payload)
+  const raw = (data && typeof data === 'object' && 'product' in data) ? (data as { product: ProductResponse }).product : data
+  return normalizeProduct(raw)
 }
 
 export async function deleteProduct(id: string): Promise<void> {
