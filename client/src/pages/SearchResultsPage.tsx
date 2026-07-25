@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { memo, useState, useEffect, useCallback } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -13,7 +13,7 @@ const POPULAR_PRODUCTS = mockProducts.slice(0, 4)
 
 const RESULTS_PER_PAGE = 12
 
-export default function SearchResultsPage() {
+function SearchResultsPage() {
   const [searchParams] = useSearchParams()
   const query = searchParams.get('q') ?? ''
 
@@ -58,9 +58,9 @@ export default function SearchResultsPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900">
             {query.trim() ? (
               <>Showing results for &lsquo;{query.trim()}&rsquo;</>
             ) : (
@@ -156,3 +156,5 @@ export default function SearchResultsPage() {
     </div>
   )
 }
+
+export default memo(SearchResultsPage)

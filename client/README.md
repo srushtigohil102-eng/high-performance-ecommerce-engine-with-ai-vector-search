@@ -2,7 +2,7 @@
 
 React-based e-commerce frontend with AI-powered vector search, built as part of a high-performance e-commerce engine.
 
-> **Week 3 Complete** — All core commerce flows (search, cart, checkout, orders) are built and stabilized.
+> **Weeks 1-3 Complete** — Full purchase journey built and stabilized: search, browse, cart, checkout, and order history. Ready for final review.
 
 ---
 
@@ -42,21 +42,28 @@ npm run dev                  # opens at http://localhost:5173
 
 ---
 
-## Week 1 + Week 2 — Completed Features
+## Weeks 1-3 — Complete Feature Summary
 
 ### Core UI & Layout
 - Responsive layout with Navbar (hamburger on mobile), Footer, and content outlet
-- Mobile-first design across all pages (1-col → 2-col → 3/4-col grid)
+- Mobile-first design across all pages (1-col to 2-col to 3/4-col grid)
 - Keyboard navigation and ARIA attributes on interactive elements
 - Error boundary at app root with fallback UI
 
 ### Home Page (`/`)
 - Product grid with responsive columns (1/2/3/4 based on screen width)
 - Category filter dropdown populated from backend product data
-- Debounced search input (300ms) with backend query params
 - Smart pagination with ellipsis for large page counts
 - Empty state with "Clear all filters" action when no results found
 - Results count display ("X products found")
+
+### AI Semantic Search (`/search`)
+- Full-page search results via `GET /search?q=<query>` (vector/embedding-powered)
+- "AI-powered semantic search" badge on results page
+- Empty query state with example suggestions
+- Zero-results state with category quick-links and popular products
+- Pagination for search results
+- Retry button on search errors
 
 ### Product Detail (`/product/:id`)
 - Full product page with image, name, price, description, category
@@ -70,13 +77,31 @@ npm run dev                  # opens at http://localhost:5173
 - Cart item list with images, names, prices, quantities
 - Quantity increase/decrease with stock limit enforcement
 - Remove item button per cart entry
-- Subtotal calculation (price × quantity per item, summed)
+- Subtotal calculation (price x quantity per item, summed)
 - Empty cart state with "Browse Products" link
 - Backend sync: optimistic UI updates with rollback on API failure
 - Cart merge on login (local + remote, takes higher quantity per product)
 - Per-item loading overlay during quantity updates
-- Discount code input with apply/remove functionality
+- Discount code input with apply/remove functionality (backend-integrated)
 - Checkout blocking when items are out of stock or over stock limit
+
+### Checkout Flow (`/checkout`)
+- Shipping address form with client-side validation (name, address, city, state, postal code, phone)
+- US postal code format validation (`12345` or `12345-6789`)
+- Payment method selection: Cash on Delivery or Mock Card
+- Order summary sidebar with line items, subtotal, discount, total
+- Auth guard: requires login to complete checkout (with return-to URL preservation)
+- Submit button with loading spinner during order placement
+- Error banner with server message on order failure (cart preserved for retry)
+- Checkout blocked when cart items are out of stock
+
+### Order Management
+- **Order Confirmation** (`/order-confirmation/:orderId`): Success header with checkmark, order details, items, pricing, shipping, payment info
+- **Order History** (`/orders`): List of all orders with status badges, dates, item counts, totals; empty state with "Start Shopping" CTA
+- **Order Detail** (`/orders/:orderId`): Full order view with items, pricing breakdown (subtotal, discount, total), shipping address, payment method
+- Auth-protected: redirects to login if not authenticated
+- Loading, error (with retry), and empty states on all order pages
+- Status badges color-coded: pending (yellow), confirmed/processing (blue), shipped (purple), delivered (green), cancelled (red)
 
 ### Authentication (`/login`)
 - JWT-based login via `POST /auth/login`
@@ -109,50 +134,11 @@ npm run dev                  # opens at http://localhost:5173
 
 ---
 
-## Week 3 — Completed Features
-
-### AI Semantic Search (`/search`)
-- Full-page search results with `GET /search?q=<query>` (vector/embedding-powered)
-- "AI-powered semantic search" badge on results page
-- Empty query state with example suggestions
-- Zero-results state with category quick-links and popular products
-- Pagination for search results
-- Retry button on search errors
-
-### Cart Backend Integration
-- Full cart sync to backend via `POST /cart` on every mutation
-- Optimistic UI updates with automatic rollback on backend failure
-- Toast notifications on sync failure ("Failed to sync cart with server")
-- Cart merge on login (local + remote, takes higher quantity per product)
-- Discount code backend integration: `POST /cart/discount`, `DELETE /cart/discount`
-- Per-item loading overlay during individual quantity updates
-- Out-of-stock and over-stock detection with checkout blocking
-
-### Checkout Flow (`/checkout`)
-- Shipping address form with client-side validation (name, address, city, state, postal code, phone)
-- US postal code format validation (`12345` or `12345-6789`)
-- Payment method selection: Cash on Delivery or Mock Card
-- Order summary sidebar with line items, subtotal, discount, total
-- Auth guard: requires login to complete checkout (with return-to URL preservation)
-- Submit button with loading spinner during order placement
-- Error banner with server message on order failure (cart preserved for retry)
-- Checkout blocked when cart items are out of stock
-
-### Order Management
-- **Order Confirmation** (`/order-confirmation/:orderId`): Success header with checkmark, order details, items, pricing, shipping, payment info
-- **Order History** (`/orders`): List of all orders with status badges, dates, item counts, totals; empty state with "Start Shopping" CTA
-- **Order Detail** (`/orders/:orderId`): Full order view with items, pricing breakdown (subtotal, discount, total), shipping address, payment method
-- Auth-protected: redirects to login if not authenticated
-- Loading, error (with retry), and empty states on all order pages
-- Status badges color-coded: pending (yellow), confirmed/processing (blue), shipped (purple), delivered (green), cancelled (red)
-
----
-
 ## Architecture
 
 ```
 src/
-├── components/       14 reusable UI components
+├── components/       15 reusable UI components
 ├── context/          3 React context providers (Cart, Auth, Toast)
 ├── data/             Mock data fallback (mockProducts.ts, mockOrders.ts)
 ├── hooks/            4 custom hooks (useCart, useAuth, useToast, useDebounce)
@@ -161,7 +147,7 @@ src/
 └── types/            Shared TypeScript interfaces
 ```
 
-**Provider nesting:** `BrowserRouter` → `AuthProvider` → `ToastProvider` → `CartProvider` → `Routes`
+**Provider nesting:** `BrowserRouter` -> `AuthProvider` -> `ToastProvider` -> `CartProvider` -> `Routes`
 
 **Service layer:** Pages call `productService`, `authService`, `cartService`, `orderService` which use `apiClient` (Axios with JWT interceptor). If the backend is unavailable, product services fall back to mock data.
 
@@ -225,12 +211,14 @@ A structured 5-minute demo walkthrough is available in [`DEMO_SCRIPT.md`](../DEM
 
 ---
 
-## Week 4 — Planned
+## Week 4 — Remaining Work
 
-| Area | Target |
-|------|--------|
-| Admin dashboard | UI polish, improved forms, responsive layout |
-| Product images | Real images from CDN/storage (replace placehold.co) |
-| User registration | Registration page with form validation |
-| Responsiveness | Mobile/tablet polish across all pages |
-| Deployment | Production build optimization, deployment prep |
+| Area | Target | Status |
+|------|--------|--------|
+| Admin dashboard | UI polish, improved forms, responsive layout | Pending |
+| Product images | Real images from CDN/storage (replace placehold.co) | Pending |
+| User registration | Registration page with form validation | Pending |
+| Responsive polish | Mobile/tablet refinements across all pages | Pending |
+| RBAC enforcement | Server-side role-based access control | Pending |
+| Deployment | Production build optimization, deployment prep | Pending |
+| Final integration | Cross-team end-to-end testing with backend | Pending |
