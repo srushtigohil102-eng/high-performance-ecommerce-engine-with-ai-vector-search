@@ -13,6 +13,7 @@ import { initializeSocket } from "./services/socket.service";
 import { connectRedis } from "./config/redis";
 import { cacheMiddleware } from "./middleware/cache.middleware";
 import healthRoutes from "./routes/health.routes";
+import { setupSwagger } from "./config/swagger";
 
 
 
@@ -25,6 +26,7 @@ import paymentRoutes from "./routes/payment.routes";
 import searchRoutes from "./routes/search.routes";
 import reportRoutes from './routes/report.routes';
 import dashboardRoutes from "./routes/dashboard.routes";
+
 
 
 // queue.routes is optional; if not present, skip mounting queue routes
@@ -85,6 +87,8 @@ const limiter = rateLimit({
   message: "Too many requests from this IP, please try again later.",
 });
 app.use("/api", limiter);
+
+setupSwagger(app);
 
 // ===== ROUTES =====
 app.use("/api/auth", authRoutes);
