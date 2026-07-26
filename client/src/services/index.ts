@@ -1,4 +1,5 @@
-export { getProducts, getProductById, createProduct, updateProduct, deleteProduct } from './productService'
-export { syncCartToBackend, fetchCartFromBackend, updateCartItemBackend, removeCartItemBackend } from './cartService'
+export { getProducts, searchProducts, getProductById, createProduct, updateProduct, deleteProduct } from './productService'
+export { syncCartToBackend, fetchCartFromBackend, updateCartItemBackend, removeCartItemBackend, applyDiscountBackend, removeDiscountBackend, getCartSummaryBackend } from './cartService'
+export { placeOrder, getOrderById, getOrders } from './orderService'
 export { apiClient, setAuthToken, clearAuthToken } from './apiClient'
 export * as authService from './authService'
