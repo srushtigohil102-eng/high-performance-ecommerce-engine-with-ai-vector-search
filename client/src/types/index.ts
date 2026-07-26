@@ -103,3 +103,21 @@ export interface PlaceOrderPayload {
   paymentMethod: PaymentMethod
   discountCode?: string
 }
+
+export interface AdminOrder extends Order {
+  customerName: string
+  customerEmail: string
+}
+
+export interface AdminDashboardStats {
+  totalProducts: number
+  totalOrders: number
+  lowStockProducts: number
+  totalRevenue: number
+}
+
+export interface AdminOrderQueryParams {
+  status?: OrderStatus | ''
+  page?: number
+  limit?: number
+}

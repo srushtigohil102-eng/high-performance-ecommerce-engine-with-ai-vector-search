@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback, type FormEvent } from 'react'
-import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
 import type { Product, ProductPayload } from '../types'
 import { getProducts, createProduct, updateProduct, deleteProduct } from '../services/productService'
@@ -38,7 +37,6 @@ function validateForm(form: ProductPayload): FormErrors {
 }
 
 export default function AdminPage() {
-  const { user } = useAuth()
   const { showToast } = useToast()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -186,12 +184,9 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div>
       <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          {user && <p className="mt-1 text-sm text-gray-500">Logged in as {user.name} ({user.role})</p>}
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">Products</h1>
         <div className="flex items-center gap-3">
           <Button
             variant="outline"

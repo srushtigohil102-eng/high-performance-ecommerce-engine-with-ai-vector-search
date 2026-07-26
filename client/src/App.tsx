@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext'
 import { ToastProvider } from './context/ToastContext'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
+import AdminLayout from './components/AdminLayout'
 import HomePage from './pages/HomePage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import SearchResultsPage from './pages/SearchResultsPage'
@@ -14,6 +15,9 @@ import OrderHistoryPage from './pages/OrderHistoryPage'
 import OrderDetailPage from './pages/OrderDetailPage'
 import LoginPage from './pages/LoginPage'
 import AdminPage from './pages/AdminPage'
+import AdminDashboardPage from './pages/admin/AdminDashboardPage'
+import AdminOrdersPage from './pages/admin/AdminOrdersPage'
+import AdminOrderDetailPage from './pages/admin/AdminOrderDetailPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 export default function App() {
@@ -34,7 +38,12 @@ export default function App() {
               <Route path="/orders/:orderId" element={<OrderDetailPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route element={<ProtectedRoute />}>
-                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<AdminDashboardPage />} />
+                  <Route path="products" element={<AdminPage />} />
+                  <Route path="orders" element={<AdminOrdersPage />} />
+                  <Route path="orders/:orderId" element={<AdminOrderDetailPage />} />
+                </Route>
               </Route>
               <Route path="*" element={<NotFoundPage />} />
             </Route>
