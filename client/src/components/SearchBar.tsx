@@ -74,7 +74,7 @@ export default function SearchBar({ loading = false, className = '' }: SearchBar
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Search products..."
-        className="w-full rounded-lg border border-gray-300 bg-gray-50 py-2 pl-10 pr-10 text-sm text-gray-900 transition placeholder:text-gray-400 focus:border-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-gray-900"
+        className="w-full rounded-lg border border-gray-300 bg-gray-50 py-3 pl-10 pr-10 text-sm text-gray-900 transition placeholder:text-gray-400 focus:border-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 min-h-[44px]"
         aria-label="Search products"
       />
       {inputValue && (
@@ -84,7 +84,7 @@ export default function SearchBar({ loading = false, className = '' }: SearchBar
             setInputValue('')
             inputRef.current?.focus()
           }}
-          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+          className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 min-w-[44px] justify-center"
           aria-label="Clear search"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

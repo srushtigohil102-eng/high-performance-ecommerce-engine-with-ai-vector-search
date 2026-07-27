@@ -185,7 +185,7 @@ export default function AdminPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Products</h1>
         <div className="flex items-center gap-3">
           <Button
@@ -208,52 +208,89 @@ export default function AdminPage() {
       {products.length === 0 ? (
         <p className="text-gray-500">No products found. Add your first product above.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
-              <tr>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Price</th>
-                <th className="px-4 py-3">Category</th>
-                <th className="px-4 py-3">Stock</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {products.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{product.name}</td>
-                  <td className="px-4 py-3 text-gray-700">${product.price.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-gray-700">{product.category}</td>
-                  <td className="px-4 py-3 text-gray-700">{product.stock ?? '—'}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openEditForm(product)}
-                        className="rounded-md px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => confirmDelete(product)}
-                        className="rounded-md px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
+        <>
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto rounded-lg border border-gray-200 md:block">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                <tr>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Price</th>
+                  <th className="px-4 py-3">Category</th>
+                  <th className="px-4 py-3">Stock</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {products.map((product) => (
+                  <tr key={product.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-900">{product.name}</td>
+                    <td className="px-4 py-3 text-gray-700">${product.price.toFixed(2)}</td>
+                    <td className="px-4 py-3 text-gray-700">{product.category}</td>
+                    <td className="px-4 py-3 text-gray-700">{product.stock ?? '—'}</td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEditForm(product)}
+                          className="rounded-md px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 min-h-[44px]"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => confirmDelete(product)}
+                          className="rounded-md px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 min-h-[44px]"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile card layout */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {products.map((product) => (
+              <div key={product.id} className="rounded-lg border border-gray-200 p-4">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900">{product.name}</p>
+                    <p className="mt-1 text-sm text-gray-500">{product.category}</p>
+                  </div>
+                  <p className="text-sm font-semibold text-gray-900">${product.price.toFixed(2)}</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-500">Stock: {product.stock ?? '—'}</p>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openEditForm(product)}
+                      className="rounded-md px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 min-h-[44px]"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => confirmDelete(product)}
+                      className="rounded-md px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 min-h-[44px]"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="mx-4 w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
+          <div className="mx-0 w-full max-w-lg rounded-t-xl bg-white p-6 shadow-xl sm:mx-4 sm:rounded-xl">
             <h2 className="mb-4 text-xl font-bold text-gray-900">
               {editingProduct ? 'Edit Product' : 'Add Product'}
             </h2>
@@ -266,7 +303,7 @@ export default function AdminPage() {
                 onBlur={handleFormBlur}
                 error={formErrors.name}
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Input
                   label="Price"
                   type="number"
@@ -306,7 +343,7 @@ export default function AdminPage() {
                   rows={3}
                   value={form.description}
                   onChange={(e) => updateFormField('description', e.target.value)}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm transition focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                  className="rounded-lg border border-gray-300 px-4 py-3 text-sm transition focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 min-h-[44px]"
                 />
               </div>
               <div className="flex justify-end gap-3 pt-2">
@@ -323,8 +360,8 @@ export default function AdminPage() {
       )}
 
       {deletingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="mx-4 w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
+          <div className="mx-0 w-full max-w-sm rounded-t-xl bg-white p-6 shadow-xl sm:mx-4 sm:rounded-xl">
             <h2 className="mb-2 text-lg font-bold text-gray-900">Delete Product</h2>
             <p className="mb-6 text-sm text-gray-600">
               Are you sure you want to delete <strong>{deletingProduct.name}</strong>? This action cannot be undone.

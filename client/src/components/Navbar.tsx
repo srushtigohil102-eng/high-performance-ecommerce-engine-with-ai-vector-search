@@ -88,26 +88,26 @@ export default function Navbar() {
 
       {/* Mobile dropdown */}
       {mobileOpen && (
-        <div id="mobile-menu" className="flex flex-col gap-2 border-t border-gray-200 px-4 py-4 md:hidden">
-          <SearchBar className="mb-2" />
-          <NavLink to="/" end className={linkClass} onClick={closeMobile}>
+        <div id="mobile-menu" className="flex flex-col gap-1 border-t border-gray-200 px-4 py-4 md:hidden">
+          <SearchBar className="mb-3" />
+          <NavLink to="/" end className="rounded-lg px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100" onClick={closeMobile}>
             Home
           </NavLink>
-          <NavLink to="/cart" className={linkClass} onClick={closeMobile}>
+          <NavLink to="/cart" className="rounded-lg px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100" onClick={closeMobile}>
             Cart
             {itemCount > 0 && (
-              <span className="ml-1 inline-flex items-center justify-center rounded-full bg-gray-900 px-1.5 py-0.5 text-xs font-medium text-white">
+              <span className="ml-2 inline-flex items-center justify-center rounded-full bg-gray-900 px-2 py-0.5 text-xs font-medium text-white">
                 {itemCount}
               </span>
             )}
           </NavLink>
           {isAuthenticated && (
-            <NavLink to="/orders" className={linkClass} onClick={closeMobile}>
+            <NavLink to="/orders" className="rounded-lg px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100" onClick={closeMobile}>
               My Orders
             </NavLink>
           )}
           {isAuthenticated && user?.role === 'admin' && (
-            <NavLink to="/admin" className={linkClass} onClick={closeMobile}>
+            <NavLink to="/admin" className="rounded-lg px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100" onClick={closeMobile}>
               Admin
             </NavLink>
           )}
@@ -115,12 +115,12 @@ export default function Navbar() {
             <button
               type="button"
               onClick={handleLogout}
-              className="text-left text-sm text-gray-600 hover:text-gray-900"
+              className="rounded-lg px-4 py-3 text-left text-sm font-medium text-gray-700 hover:bg-gray-100"
             >
               Logout
             </button>
           ) : (
-            <NavLink to="/login" className={linkClass} onClick={closeMobile}>
+            <NavLink to="/login" className="rounded-lg px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100" onClick={closeMobile}>
               Login
             </NavLink>
           )}

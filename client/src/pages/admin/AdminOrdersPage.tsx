@@ -80,43 +80,72 @@ export default function AdminOrdersPage() {
       {orders.length === 0 ? (
         <p className="text-gray-500">No orders found.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
-              <tr>
-                <th className="px-4 py-3">Order ID</th>
-                <th className="px-4 py-3">Customer</th>
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3 text-right">Total</th>
-                <th className="px-4 py-3">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {orders.map((order) => (
-                <tr
-                  key={order.id}
-                  onClick={() => navigate(`/admin/orders/${order.id}`)}
-                  className="cursor-pointer transition hover:bg-gray-50"
-                >
-                  <td className="px-4 py-3 font-medium text-gray-900">{order.id}</td>
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-gray-900">{order.customerName}</p>
-                    <p className="text-xs text-gray-500">{order.customerEmail}</p>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">{formatDate(order.createdAt)}</td>
-                  <td className="px-4 py-3 text-right font-medium text-gray-900">
-                    ${order.total.toFixed(2)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[order.status]}`}>
+        <>
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto rounded-lg border border-gray-200 md:block">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                <tr>
+                  <th className="px-4 py-3">Order ID</th>
+                  <th className="px-4 py-3">Customer</th>
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3 text-right">Total</th>
+                  <th className="px-4 py-3">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {orders.map((order) => (
+                  <tr
+                    key={order.id}
+                    onClick={() => navigate(`/admin/orders/${order.id}`)}
+                    className="cursor-pointer transition hover:bg-gray-50"
+                  >
+                    <td className="px-4 py-3 font-medium text-gray-900">{order.id}</td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-gray-900">{order.customerName}</p>
+                      <p className="text-xs text-gray-500">{order.customerEmail}</p>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">{formatDate(order.createdAt)}</td>
+                    <td className="px-4 py-3 text-right font-medium text-gray-900">
+                      ${order.total.toFixed(2)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[order.status]}`}>
+                        {order.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile card layout */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {orders.map((order) => (
+              <button
+                key={order.id}
+                type="button"
+                onClick={() => navigate(`/admin/orders/${order.id}`)}
+                className="rounded-lg border border-gray-200 p-4 text-left transition hover:border-gray-300 hover:shadow-sm min-h-[44px]"
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <p className="font-mono font-bold text-gray-900">#{order.id}</p>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[order.status]}`}>
                       {order.status}
                     </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                  <p className="text-sm font-bold text-gray-900">${order.total.toFixed(2)}</p>
+                </div>
+                <p className="text-sm font-medium text-gray-700">{order.customerName}</p>
+                <p className="text-xs text-gray-500">
+                  {formatDate(order.createdAt)} &middot; {order.customerEmail}
+                </p>
+              </button>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )

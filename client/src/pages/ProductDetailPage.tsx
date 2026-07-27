@@ -89,8 +89,8 @@ export default function ProductDetailPage() {
           />
         </div>
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">{product.name}</h1>
             <StockBadge stock={product.stock} />
           </div>
           <p className="text-2xl font-semibold text-gray-900">
@@ -108,7 +108,7 @@ export default function ProductDetailPage() {
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               disabled={outOfStock}
               aria-label="Decrease quantity"
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 text-lg text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               &minus;
             </button>
@@ -120,7 +120,7 @@ export default function ProductDetailPage() {
               onClick={() => setQuantity((q) => q + 1)}
               disabled={outOfStock || quantity >= (product.stock ?? Infinity)}
               aria-label="Increase quantity"
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 text-lg text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               +
             </button>
@@ -129,7 +129,7 @@ export default function ProductDetailPage() {
           <Button
             onClick={handleAddToCart}
             disabled={outOfStock}
-            className="mt-2 w-fit"
+            className="mt-2 w-full sm:w-fit"
           >
             {outOfStock ? 'Out of Stock' : 'Add to Cart'}
           </Button>

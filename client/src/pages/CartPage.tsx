@@ -71,7 +71,7 @@ function CartPage() {
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8">
-        <h1 className="mb-6 text-3xl font-bold text-gray-900">Shopping Cart</h1>
+        <h1 className="mb-6 text-2xl font-bold text-gray-900 sm:text-3xl">Shopping Cart</h1>
         <p className="mb-4 text-gray-600">Your cart is empty.</p>
         <Link to="/" className="text-sm font-medium text-gray-900 underline hover:text-gray-600">
           Browse Products
@@ -82,7 +82,7 @@ function CartPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="mb-8 text-3xl font-bold text-gray-900">Shopping Cart</h1>
+      <h1 className="mb-8 text-2xl font-bold text-gray-900 sm:text-3xl">Shopping Cart</h1>
 
       <div className="flex flex-col gap-4 lg:flex-row lg:gap-8">
         {/* Line items */}
@@ -105,7 +105,7 @@ function CartPage() {
                     </div>
                   )}
 
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-3 sm:gap-4">
                     <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:h-20 sm:w-20">
                       <ProductImage
                         src={item.product.imageUrl}
@@ -137,7 +137,7 @@ function CartPage() {
                     <button
                       type="button"
                       onClick={handleRemove(item.product.id)}
-                      className="flex-shrink-0 text-sm text-red-600 transition hover:text-red-800"
+                      className="flex-shrink-0 rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 hover:text-red-800 min-h-[44px]"
                       aria-label={`Remove ${item.product.name} from cart`}
                     >
                       Remove
@@ -151,11 +151,11 @@ function CartPage() {
                         onClick={handleDecrease(item.product.id, item.quantity)}
                         disabled={item.quantity <= 1 || isUpdating}
                         aria-label="Decrease quantity"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 text-lg text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         &minus;
                       </button>
-                      <span className="w-6 text-center text-sm font-medium text-gray-900" aria-live="polite">
+                      <span className="w-8 text-center text-sm font-medium text-gray-900" aria-live="polite">
                         {item.quantity}
                       </span>
                       <button
@@ -167,7 +167,7 @@ function CartPage() {
                           isUpdating
                         }
                         aria-label="Increase quantity"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 text-lg text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         +
                       </button>

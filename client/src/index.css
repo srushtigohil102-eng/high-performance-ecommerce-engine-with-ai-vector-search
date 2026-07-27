@@ -1,1 +1,21 @@
 @import "tailwindcss";
+
+html {
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (pointer: coarse) {
+  button,
+  a,
+  input[type="radio"],
+  input[type="checkbox"],
+  select,
+  [role="button"] {
+    min-height: 44px;
+  }
+}

@@ -60,7 +60,7 @@ function SearchResultsPage() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
             {query.trim() ? (
               <>Showing results for &lsquo;{query.trim()}&rsquo;</>
             ) : (

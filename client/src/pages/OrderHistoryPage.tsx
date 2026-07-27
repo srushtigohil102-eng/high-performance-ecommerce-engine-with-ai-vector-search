@@ -56,7 +56,7 @@ function OrderHistoryPage() {
   if (error) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8">
-        <h1 className="mb-6 text-3xl font-bold text-gray-900">My Orders</h1>
+        <h1 className="mb-6 text-2xl font-bold text-gray-900 sm:text-3xl">My Orders</h1>
         <ErrorMessage message={error}>
           <Button onClick={fetchOrders}>Retry</Button>
         </ErrorMessage>
@@ -66,7 +66,7 @@ function OrderHistoryPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="mb-6 text-3xl font-bold text-gray-900">My Orders</h1>
+      <h1 className="mb-6 text-2xl font-bold text-gray-900 sm:text-3xl">My Orders</h1>
 
       {orders.length === 0 ? (
         <div className="rounded-lg border border-gray-200 py-16 text-center">

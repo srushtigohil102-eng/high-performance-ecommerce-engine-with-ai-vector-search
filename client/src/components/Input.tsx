@@ -20,7 +20,7 @@ export default function Input({
       </label>
       <input
         id={id}
-        className={`rounded-lg border px-4 py-2 text-sm transition focus:outline-none focus:ring-1 ${
+        className={`rounded-lg border px-4 py-3 text-sm transition focus:outline-none focus:ring-1 min-h-[44px] ${
           error
             ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
             : 'border-gray-300 focus:border-gray-900 focus:ring-gray-900'

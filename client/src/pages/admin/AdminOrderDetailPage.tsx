@@ -126,7 +126,7 @@ export default function AdminOrderDetailPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium capitalize ${STATUS_STYLES[order.status]}`}>
+          <span className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium capitalize ${STATUS_STYLES[order.status]}`}>
             {order.status}
           </span>
         </div>
