@@ -1,5 +1,4 @@
 import { apiClient } from './apiClient'
-import { mockOrders } from '../data/mockOrders'
 import type { PlaceOrderPayload, Order, OrderItem, ShippingAddress, PaymentMethod, OrderStatus } from '../types'
 
 interface RawOrderItem {
@@ -20,10 +19,13 @@ interface RawShippingAddress {
   address_line1?: string
   addressLine2?: string
   address_line2?: string
+  street?: string
   city?: string
   state?: string
   postalCode?: string
   postal_code?: string
+  zipCode?: string
+  country?: string
   phone?: string
 }
 
@@ -39,6 +41,7 @@ interface RawOrder {
   subtotal?: number
   discountAmount?: number
   discount_amount?: number
+  discount?: number
   total?: number
   discountCode?: string
   discount_code?: string
@@ -66,13 +69,15 @@ function normalizeShippingAddress(raw: RawShippingAddress | undefined): Shipping
   if (!raw) {
     return { fullName: '', addressLine1: '', addressLine2: '', city: '', state: '', postalCode: '', phone: '' }
   }
+  // Backend shape: { street, city, state, zipCode, country }
+  // Frontend shape: { fullName, addressLine1, addressLine2, city, state, postalCode, phone }
   return {
     fullName: raw.fullName ?? raw.full_name ?? '',
-    addressLine1: raw.addressLine1 ?? raw.address_line1 ?? '',
+    addressLine1: raw.addressLine1 ?? raw.address_line1 ?? raw.street ?? '',
     addressLine2: raw.addressLine2 ?? raw.address_line2 ?? '',
     city: raw.city ?? '',
     state: raw.state ?? '',
-    postalCode: raw.postalCode ?? raw.postal_code ?? '',
+    postalCode: raw.postalCode ?? raw.postal_code ?? raw.zipCode ?? '',
     phone: raw.phone ?? '',
   }
 }
@@ -82,6 +87,12 @@ function normalizeOrder(raw: RawOrder): Order {
   const paymentMethod = (raw.paymentMethod ?? raw.payment_method ?? 'cod') as PaymentMethod
   const status = (raw.status ?? 'pending') as OrderStatus
   const createdAt = raw.createdAt ?? raw.created_at ?? raw.createdOn ?? new Date().toISOString()
+
+  // Backend returns "discount" (amount deducted), frontend calls it "discountAmount"
+  const discountAmount = typeof raw.discountAmount === 'number' ? raw.discountAmount
+    : typeof raw.discount_amount === 'number' ? raw.discount_amount
+    : typeof raw.discount === 'number' ? raw.discount
+    : 0
 
   if (import.meta.env.DEV && !id) {
     console.warn('[orderService] Order missing id field, response shape may have changed:', raw)
@@ -93,7 +104,7 @@ function normalizeOrder(raw: RawOrder): Order {
     shippingAddress: normalizeShippingAddress(raw.shippingAddress ?? raw.shipping_address),
     paymentMethod,
     subtotal: typeof raw.subtotal === 'number' ? raw.subtotal : 0,
-    discountAmount: typeof raw.discountAmount === 'number' ? raw.discountAmount : (typeof raw.discount_amount === 'number' ? raw.discount_amount : 0),
+    discountAmount,
     total: typeof raw.total === 'number' ? raw.total : 0,
     discountCode: raw.discountCode ?? raw.discount_code ?? null,
     status,
@@ -123,33 +134,42 @@ function unwrapOrdersResponse(data: unknown): Order[] {
   return []
 }
 
+// Transform frontend ShippingAddress to backend shape for the order create payload
+function toBackendShippingAddress(addr: ShippingAddress) {
+  // Backend expects: { street, city, state, zipCode, country }
+  // Combine addressLine1 + addressLine2 into street
+  const street = [addr.addressLine1, addr.addressLine2].filter(Boolean).join(', ')
+  return {
+    street,
+    city: addr.city,
+    state: addr.state,
+    zipCode: addr.postalCode,
+    country: 'US', // default; the form doesn't collect country yet
+  }
+}
+
 export async function placeOrder(payload: PlaceOrderPayload): Promise<Order> {
-  const { data } = await apiClient.post('/orders', payload)
+  // Transform payload to match backend API shape
+  const backendPayload = {
+    items: payload.items.map((item) => ({
+      product: item.productId, // backend field is "product", not "productId"
+      quantity: item.quantity,
+    })),
+    shippingAddress: toBackendShippingAddress(payload.shippingAddress),
+    discountCode: payload.discountCode,
+    // paymentMethod is not stored by backend — omitted intentionally
+  }
+
+  const { data } = await apiClient.post('/orders', backendPayload)
   return unwrapOrderResponse(data)
 }
 
 export async function getOrderById(orderId: string): Promise<Order> {
-  try {
-    const { data } = await apiClient.get(`/orders/${orderId}`)
-    return unwrapOrderResponse(data)
-  } catch (err) {
-    if (import.meta.env.DEV) {
-      console.warn('[orderService] API unavailable, falling back to mock data', err)
-      return mockOrders.find((o) => o.id === orderId) ?? mockOrders[0]
-    }
-    throw new Error('Failed to load order. Please try again later.')
-  }
+  const { data } = await apiClient.get(`/orders/${orderId}`)
+  return unwrapOrderResponse(data)
 }
 
 export async function getOrders(): Promise<Order[]> {
-  try {
-    const { data } = await apiClient.get('/orders')
-    return unwrapOrdersResponse(data)
-  } catch (err) {
-    if (import.meta.env.DEV) {
-      console.warn('[orderService] API unavailable, falling back to mock data', err)
-      return mockOrders
-    }
-    throw new Error('Failed to load orders. Please try again later.')
-  }
+  const { data } = await apiClient.get('/orders')
+  return unwrapOrdersResponse(data)
 }

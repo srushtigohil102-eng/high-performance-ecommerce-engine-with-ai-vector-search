@@ -5,11 +5,8 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorMessage from '../components/ErrorMessage'
 import Button from '../components/Button'
 import Pagination from '../components/Pagination'
-import { mockProducts } from '../data/mockProducts'
 import type { Product } from '../types'
-import { searchProducts } from '../services/productService'
-
-const POPULAR_PRODUCTS = mockProducts.slice(0, 4)
+import { searchProducts, getProducts } from '../services/productService'
 
 const RESULTS_PER_PAGE = 12
 
@@ -23,6 +20,7 @@ function SearchResultsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
+  const [popularProducts, setPopularProducts] = useState<Product[]>([])
 
   const fetchResults = useCallback(async () => {
     if (!query.trim()) {
@@ -47,6 +45,13 @@ function SearchResultsPage() {
       setLoading(false)
     }
   }, [query, page])
+
+  // Fetch a few real products for the "Popular" fallback section
+  useEffect(() => {
+    if (popularProducts.length === 0) {
+      getProducts({ limit: 4 }).then((res) => setPopularProducts(res.products)).catch(() => {})
+    }
+  }, [popularProducts.length])
 
   useEffect(() => {
     setPage(1)
@@ -134,7 +139,7 @@ function SearchResultsPage() {
           <div>
             <h2 className="mb-4 text-lg font-semibold text-gray-900">Popular Products</h2>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {POPULAR_PRODUCTS.map((product) => (
+              {popularProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
