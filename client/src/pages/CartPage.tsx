@@ -137,14 +137,14 @@ function CartPage() {
                     <button
                       type="button"
                       onClick={handleRemove(item.product.id)}
-                      className="flex-shrink-0 rounded-lg px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 hover:text-red-800 min-h-[44px]"
+                      className="flex-shrink-0 rounded-lg px-4 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50 hover:text-red-800 min-h-[44px] min-w-[44px]"
                       aria-label={`Remove ${item.product.name} from cart`}
                     >
                       Remove
                     </button>
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
+                  <div className="mt-4 flex flex-col gap-3 border-t border-gray-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -185,7 +185,7 @@ function CartPage() {
 
         {/* Summary sidebar */}
         <div className="w-full lg:w-80 lg:flex-shrink-0">
-          <div className="sticky top-24 rounded-lg border border-gray-200 p-6">
+          <div className="sticky top-24 rounded-lg border border-gray-200 p-4 sm:p-6">
             <h2 className="mb-4 text-lg font-semibold text-gray-900">Order Summary</h2>
 
             <div className="space-y-3">

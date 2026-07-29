@@ -62,11 +62,11 @@ export default function HomePage() {
       <h1 className="mb-6 text-2xl font-bold text-gray-900 sm:text-3xl">Products</h1>
 
       {/* Category filter */}
-      <div className="mb-6">
+      <div className="mb-6 w-full sm:w-auto">
         <select
           value={category}
           onChange={handleCategoryChange}
-          className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 transition focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+          className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 transition focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 min-h-[44px] sm:w-auto"
           aria-label="Filter by category"
         >
           <option value="">All Categories</option>
