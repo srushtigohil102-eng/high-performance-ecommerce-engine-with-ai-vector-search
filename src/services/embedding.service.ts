@@ -2,9 +2,33 @@ import openai from "../config/openai";
 import { Product } from "../models/Product";
 import logger from "../utils/logger";
 
-// ===== GENERATE EMBEDDING FOR TEXT =====
+// ===== GENERATE MOCK EMBEDDING (for testing without API) =====
+export const generateMockEmbedding = (text: string): number[] => {
+  // Generate a deterministic embedding based on text
+  const embedding: number[] = [];
+  const seed = text.length * 1000;
+  
+  for (let i = 0; i < 1536; i++) {
+    // Simple hash to generate deterministic values
+    const hash = (seed + i * 31) % 1000 / 1000;
+    embedding.push(hash);
+  }
+  return embedding;
+};
+
+// ===== GENERATE EMBEDDING WITH FALLBACK =====
 export const generateEmbedding = async (text: string): Promise<number[]> => {
   try {
+    // Check if OpenAI API key exists and has quota
+    const hasValidKey = process.env.OPENAI_API_KEY && 
+                        process.env.OPENAI_API_KEY !== 'your_openai_api_key_here' &&
+                        process.env.OPENAI_API_KEY.length > 20;
+
+    if (!hasValidKey) {
+      logger.warn('⚠️ No valid OpenAI API key. Using mock embedding.');
+      return generateMockEmbedding(text);
+    }
+
     const response = await openai.embeddings.create({
       model: "text-embedding-3-small",
       input: text,
@@ -12,15 +36,18 @@ export const generateEmbedding = async (text: string): Promise<number[]> => {
     });
 
     return response.data[0].embedding;
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.status === 429 || error?.code === 'insufficient_quota') {
+      logger.warn('⚠️ OpenAI quota exceeded. Using mock embedding.');
+      return generateMockEmbedding(text);
+    }
     logger.error(`Embedding generation error: ${error}`);
-    throw new Error("Failed to generate embedding");
+    return generateMockEmbedding(text);
   }
 };
 
-// ===== GENERATE EMBEDDING FOR PRODUCT =====
+// ===== GENERATE PRODUCT EMBEDDING =====
 export const generateProductEmbedding = async (product: any): Promise<number[]> => {
-  // Combine product information into a single text
   const text = `
     Product: ${product.name}
     Description: ${product.description}
@@ -31,7 +58,7 @@ export const generateProductEmbedding = async (product: any): Promise<number[]> 
   return generateEmbedding(text);
 };
 
-// ===== GENERATE EMBEDDINGS FOR ALL PRODUCTS =====
+// ===== GENERATE ALL PRODUCT EMBEDDINGS =====
 export const generateAllProductEmbeddings = async (): Promise<void> => {
   try {
     const products = await Product.find({ isActive: true, embedding: { $exists: false } });

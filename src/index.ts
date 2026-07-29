@@ -12,6 +12,10 @@ import logger from "./utils/logger";
 import { initializeSocket } from "./services/socket.service";
 import { connectRedis } from "./config/redis";
 import { cacheMiddleware } from "./middleware/cache.middleware";
+import healthRoutes from "./routes/health.routes";
+import { setupSwagger } from "./config/swagger";
+
+
 
 // Import routes
 import authRoutes from "./routes/auth.routes";
@@ -20,7 +24,28 @@ import cartRoutes from "./routes/cart.routes";
 import orderRoutes from "./routes/order.routes";
 import paymentRoutes from "./routes/payment.routes";
 import searchRoutes from "./routes/search.routes";
-import cacheRoutes from "./routes/cache.routes";
+import reportRoutes from './routes/report.routes';
+import dashboardRoutes from "./routes/dashboard.routes";
+
+
+
+// queue.routes is optional; if not present, skip mounting queue routes
+let queueRoutes: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  queueRoutes = require("./routes/queue.routes").default;
+} catch (err) {
+  // ignore if file doesn't exist
+}
+
+// cache.routes is optional; if not present, skip mounting cache routes
+let cacheRoutes: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  cacheRoutes = require("./routes/cache.routes").default;
+} catch (err) {
+  // ignore if file doesn't exist
+}
 
 // Import controllers for caching
 import { getAllProducts, getProductById } from "./controllers/product.controller";
@@ -63,6 +88,8 @@ const limiter = rateLimit({
 });
 app.use("/api", limiter);
 
+setupSwagger(app);
+
 // ===== ROUTES =====
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
@@ -70,7 +97,21 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/search", searchRoutes);
-app.use("/api/cache", cacheRoutes);
+app.use('/api/reports', reportRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+// Simple request tracker middleware (logs each request)
+const requestTracker = (req: Request, _res: Response, next: NextFunction) => {
+  logger.info(`${req.method} ${req.originalUrl}`);
+  next();
+};
+
+app.use(requestTracker);
+app.use("/api", healthRoutes);
+
+app.use("/api/queue", queueRoutes);
+if (cacheRoutes) {
+  app.use("/api/cache", cacheRoutes);
+}
 
 // ===== CACHED ROUTES =====
 // Products - cached for 5 minutes (300 seconds)
@@ -162,7 +203,7 @@ const startServer = async () => {
       console.log(`   📦  Orders    → /api/orders`);
       console.log(`   💳  Payment   → /api/payments`);
       console.log(`   🔍  Search    → /api/search`);
-      console.log(`   🗄️  Cache      → /api/cache`);
+      if (cacheRoutes) console.log(`   🗄️  Cache      → /api/cache`);
       console.log(`   🔌  WebSocket → ws://localhost:${PORT}`);
       console.log(`\n${"=".repeat(60)}`);
       console.log(`✅ API ready to accept requests\n`);
