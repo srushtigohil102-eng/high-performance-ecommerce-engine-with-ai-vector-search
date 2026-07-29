@@ -8,6 +8,7 @@ import {
 } from "../controllers/productController";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { adminMiddleware } from "../middleware/adminMiddleware";
+import { createProductValidation, updateProductValidation } from "../middleware/validate";
 
 const router = Router();
 
@@ -18,10 +19,10 @@ router.get("/", getProducts);
 router.get("/:id", getProductById);
 
 // POST /api/products — admin only
-router.post("/", authMiddleware, adminMiddleware, createProduct);
+router.post("/", authMiddleware, adminMiddleware, createProductValidation, createProduct);
 
 // PUT /api/products/:id — admin only
-router.put("/:id", authMiddleware, adminMiddleware, updateProduct);
+router.put("/:id", authMiddleware, adminMiddleware, updateProductValidation, updateProduct);
 
 // DELETE /api/products/:id — admin only
 router.delete("/:id", authMiddleware, adminMiddleware, deleteProduct);

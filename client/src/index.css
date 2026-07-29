@@ -9,6 +9,7 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Minimum touch target size for all interactive elements */
 @media (pointer: coarse) {
   button,
   a,
@@ -18,4 +19,33 @@ body {
   [role="button"] {
     min-height: 44px;
   }
+}
+
+/* Prevent text overflow on small screens */
+@media (max-width: 640px) {
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Scrollbar styling for overflow containers */
+.thin-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 2px;
 }

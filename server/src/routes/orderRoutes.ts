@@ -9,11 +9,12 @@ import {
 } from "../controllers/orderController";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { adminMiddleware } from "../middleware/adminMiddleware";
+import { createOrderValidation, validateDiscountValidation } from "../middleware/validate";
 
 const router = Router();
 
 // POST /api/orders — create order (checkout)
-router.post("/", authMiddleware, createOrder);
+router.post("/", authMiddleware, createOrderValidation, createOrder);
 
 // GET /api/orders — logged-in user's orders
 router.get("/", authMiddleware, getMyOrders);
@@ -22,6 +23,6 @@ router.get("/", authMiddleware, getMyOrders);
 router.get("/:id", authMiddleware, getOrderById);
 
 // POST /api/discount/validate — validate discount code
-router.post("/discount/validate", authMiddleware, validateDiscount);
+router.post("/discount/validate", authMiddleware, validateDiscountValidation, validateDiscount);
 
 export default router;
