@@ -120,18 +120,18 @@ function SearchResultsPage() {
             <p className="mb-6 text-sm text-gray-500">
               Try rephrasing your search or check out some suggestions below.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <Link to="/">
-                <Button variant="secondary">Browse All Products</Button>
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
+              <Link to="/" className="w-full sm:w-auto">
+                <Button variant="secondary" className="w-full sm:w-auto">Browse All Products</Button>
               </Link>
-              <Link to="/?category=Electronics">
-                <Button variant="outline">Electronics</Button>
+              <Link to="/?category=Electronics" className="w-full sm:w-auto">
+                <Button variant="outline" className="w-full sm:w-auto">Electronics</Button>
               </Link>
-              <Link to="/?category=Clothing">
-                <Button variant="outline">Clothing</Button>
+              <Link to="/?category=Clothing" className="w-full sm:w-auto">
+                <Button variant="outline" className="w-full sm:w-auto">Clothing</Button>
               </Link>
-              <Link to="/?category=Accessories">
-                <Button variant="outline">Accessories</Button>
+              <Link to="/?category=Accessories" className="w-full sm:w-auto">
+                <Button variant="outline" className="w-full sm:w-auto">Accessories</Button>
               </Link>
             </div>
           </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
 import { useAuth } from '../hooks/useAuth'
@@ -10,6 +10,8 @@ export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   function linkClass({ isActive }: { isActive: boolean }) {
     return `text-sm ${isActive ? 'font-semibold text-gray-900' : 'text-gray-600 hover:text-gray-900'}`
@@ -24,6 +26,31 @@ export default function Navbar() {
     closeMobile()
     navigate('/')
   }
+
+  useEffect(() => {
+    if (!mobileOpen) return
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') closeMobile()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [mobileOpen])
+
+  useEffect(() => {
+    if (!mobileOpen) return
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target as Node)
+      ) {
+        closeMobile()
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [mobileOpen])
 
   return (
     <nav className="border-b border-gray-200 bg-white" role="navigation" aria-label="Main navigation">
@@ -73,8 +100,9 @@ export default function Navbar() {
 
         {/* Hamburger button */}
         <button
+          ref={buttonRef}
           type="button"
-          className="flex flex-col gap-1.5 md:hidden"
+          className="flex flex-col gap-1.5 md:hidden min-h-[44px] min-w-[44px] items-center justify-center"
           onClick={() => setMobileOpen((prev) => !prev)}
           aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
           aria-expanded={mobileOpen}
@@ -88,7 +116,7 @@ export default function Navbar() {
 
       {/* Mobile dropdown */}
       {mobileOpen && (
-        <div id="mobile-menu" className="flex flex-col gap-1 border-t border-gray-200 px-4 py-4 md:hidden">
+        <div ref={menuRef} id="mobile-menu" className="flex flex-col gap-1 border-t border-gray-200 px-4 py-4 md:hidden">
           <SearchBar className="mb-3" />
           <NavLink to="/" end className="rounded-lg px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100" onClick={closeMobile}>
             Home
