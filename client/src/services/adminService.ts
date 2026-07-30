@@ -4,7 +4,9 @@ import type {
   AdminDashboardStats,
   AdminOrderQueryParams,
   OrderStatus,
+  OrderItem,
 } from '../types'
+import { normalizeOrderItem, type RawOrderItem } from './orderService'
 
 interface RawAdminOrder {
   id?: string
@@ -55,7 +57,7 @@ function normalizeAdminOrder(raw: RawAdminOrder): AdminOrder {
 
   return {
     id: raw.id ?? raw._id ?? raw.order_id ?? '',
-    items: (raw.items ?? []) as AdminOrder['items'],
+    items: (raw.items ?? []).map((item) => normalizeOrderItem(item as Parameters<typeof normalizeOrderItem>[0])),
     shippingAddress: (raw.shippingAddress ?? raw.shipping_address ?? {}) as AdminOrder['shippingAddress'],
     paymentMethod: (raw.paymentMethod ?? raw.payment_method ?? 'cod') as AdminOrder['paymentMethod'],
     subtotal: typeof raw.subtotal === 'number' ? raw.subtotal : 0,

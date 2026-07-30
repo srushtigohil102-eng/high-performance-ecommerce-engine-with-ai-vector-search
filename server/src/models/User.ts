@@ -27,7 +27,18 @@ const userSchema = new Schema<IUser>(
       default: "customer",
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: {
+      transform(_doc, ret) {
+        const obj = ret as Record<string, unknown>;
+        obj.id = obj._id?.toString();
+        delete obj.__v;
+        delete obj.password;
+        return obj;
+      },
+    },
+  }
 );
 
 userSchema.pre("save", async function (next) {

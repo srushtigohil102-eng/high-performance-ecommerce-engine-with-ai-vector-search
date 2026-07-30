@@ -21,7 +21,17 @@ const productSchema = new Schema<IProduct>(
     stock: { type: Number, required: true, min: 0, default: 0 },
     embedding: { type: [Number], default: undefined },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: {
+      transform(_doc, ret) {
+        const obj = ret as Record<string, unknown>;
+        obj.id = obj._id?.toString();
+        delete obj.__v;
+        return obj;
+      },
+    },
+  }
 );
 
 // Text index covering name, description, and category for full-text search.

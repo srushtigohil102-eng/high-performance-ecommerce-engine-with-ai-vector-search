@@ -53,7 +53,17 @@ const orderSchema = new Schema<IOrder>(
       default: "pending",
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: {
+      transform(_doc, ret) {
+        const obj = ret as Record<string, unknown>;
+        obj.id = obj._id?.toString();
+        delete obj.__v;
+        return obj;
+      },
+    },
+  }
 );
 
 export const Order = mongoose.model<IOrder>("Order", orderSchema);

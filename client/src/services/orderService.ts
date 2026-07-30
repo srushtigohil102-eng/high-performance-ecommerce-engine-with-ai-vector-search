@@ -4,7 +4,7 @@ import type { PlaceOrderPayload, Order, OrderItem, ShippingAddress, PaymentMetho
 interface RawOrderItem {
   productId?: string
   product_id?: string
-  product?: string
+  product?: string | { _id?: string; name?: string; imageUrl?: string; image_url?: string }
   name?: string
   price?: number
   quantity?: number
@@ -55,9 +55,13 @@ function normalizeOrderItem(raw: RawOrderItem): OrderItem {
   const name = raw.name ?? 'Unknown Product'
   const price = typeof raw.price === 'number' ? raw.price : 0
   const quantity = typeof raw.quantity === 'number' ? raw.quantity : 1
-  const imageUrl = raw.imageUrl ?? raw.image_url ?? 'https://placehold.co/200x200?text=Product'
+
+  // product may be a populated object { _id, name, imageUrl } or just a string id
+  const productObj = typeof raw.product === 'object' ? raw.product : undefined
+  const imageUrl = raw.imageUrl ?? raw.image_url ?? productObj?.imageUrl ?? productObj?.image_url ?? 'https://placehold.co/200x200?text=Product'
+  const productId = raw.productId ?? raw.product_id ?? productObj?._id ?? (typeof raw.product === 'string' ? raw.product : '') ?? ''
   return {
-    productId: raw.productId ?? raw.product_id ?? raw.product ?? '',
+    productId,
     name,
     price,
     quantity,
@@ -147,6 +151,9 @@ function toBackendShippingAddress(addr: ShippingAddress) {
     country: 'US', // default; the form doesn't collect country yet
   }
 }
+
+export type { RawOrderItem }
+export { normalizeOrderItem, normalizeShippingAddress }
 
 export async function placeOrder(payload: PlaceOrderPayload): Promise<Order> {
   // Transform payload to match backend API shape

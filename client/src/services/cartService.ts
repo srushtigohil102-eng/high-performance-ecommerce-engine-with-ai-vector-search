@@ -41,7 +41,7 @@ export async function removeDiscountBackend(): Promise<void> {
 // Returns: { code, percentage, message }
 
 export async function applyDiscountBackend(code: string): Promise<DiscountCode> {
-  const { data } = await apiClient.post<{ code: string; percentage: number; message: string }>('/discount/validate', { code })
+  const { data } = await apiClient.post<{ code: string; percentage: number; message: string }>('/orders/discount/validate', { code })
 
   // Backend returns { code, percentage, message } — map to frontend DiscountCode shape
   return {
