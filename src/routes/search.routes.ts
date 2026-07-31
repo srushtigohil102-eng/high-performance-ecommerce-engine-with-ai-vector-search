@@ -1,18 +1,21 @@
-import { Router } from "express";
+import { Router } from 'express';
 import {
   vectorSearch,
   hybridSearch,
   getSimilarProducts,
-} from "../controllers/search.controller";
+  getRecommendations,   // ✅ imported
+  advancedSearch,
+  getTrending, 
+} from '../controllers/search.controller';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
-// Public routes
-router.get("/vector", vectorSearch);
-router.get("/hybrid", hybridSearch);
-router.get("/similar/:productId", getSimilarProducts);
-
-// Personalized recommendations (requires auth)
-// router.get("/recommendations", authenticate, getPersonalizedRecommendations);
+router.get('/vector', authenticate, vectorSearch);
+router.get('/hybrid', authenticate, hybridSearch);
+router.get('/similar/:productId', authenticate, getSimilarProducts);
+router.get('/recommendations', authenticate, getRecommendations);   // ✅ new route
+router.get('/advanced', authenticate, advancedSearch);
+router.get('/trending', authenticate, getTrending);
 
 export default router;

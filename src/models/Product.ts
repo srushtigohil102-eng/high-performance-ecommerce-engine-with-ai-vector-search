@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from "mongoose";
+import { sendStockAlert } from '../services/socket.service';
 
 export interface IProduct extends Document {
   name: string;
@@ -180,8 +181,7 @@ ProductSchema.post("save", async function (doc) {
   // If stock is low (less than 10), trigger stock alert
   if (doc.stock < 10 && doc.isActive) {
     try {
-      // Import dynamically to avoid circular dependency
-      const { sendStockAlert } = await import("../services/socket.service");
+      // Use the imported sendStockAlert function
       await sendStockAlert(doc._id.toString());
     } catch (error) {
       // Silently fail if socket service is not available

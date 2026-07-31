@@ -8,14 +8,13 @@ import compression from "compression";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import { connectDB } from "./config/database";
+import { redisClient } from "./config/redis"; // ✅ Import for redis status
 import logger from "./utils/logger";
 import { initializeSocket } from "./services/socket.service";
 import { connectRedis } from "./config/redis";
 import { cacheMiddleware } from "./middleware/cache.middleware";
-import healthRoutes from "./routes/health.routes";
 import { setupSwagger } from "./config/swagger";
-
-
+import { validateEnv } from "./utils/validateEnv"; // ✅ New: env validation
 
 // Import routes
 import authRoutes from "./routes/auth.routes";
@@ -26,25 +25,23 @@ import paymentRoutes from "./routes/payment.routes";
 import searchRoutes from "./routes/search.routes";
 import reportRoutes from './routes/report.routes';
 import dashboardRoutes from "./routes/dashboard.routes";
+import healthRoutes from "./routes/health.routes";
 
-
-
-// queue.routes is optional; if not present, skip mounting queue routes
+// Optional routes (skip if files don't exist)
 let queueRoutes: any = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   queueRoutes = require("./routes/queue.routes").default;
 } catch (err) {
-  // ignore if file doesn't exist
+  // ignore
 }
 
-// cache.routes is optional; if not present, skip mounting cache routes
 let cacheRoutes: any = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   cacheRoutes = require("./routes/cache.routes").default;
 } catch (err) {
-  // ignore if file doesn't exist
+  // ignore
 }
 
 // Import controllers for caching
@@ -52,6 +49,9 @@ import { getAllProducts, getProductById } from "./controllers/product.controller
 import { getAllCategories } from "./controllers/category.controller";
 
 dotenv.config();
+
+// ✅ Validate environment variables before starting
+validateEnv();
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;
@@ -80,6 +80,12 @@ app.use(morgan("combined", {
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
+// ✅ Request tracker – logs every API call (moved before routes)
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  logger.info(`${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -88,6 +94,7 @@ const limiter = rateLimit({
 });
 app.use("/api", limiter);
 
+// ===== SWAGGER =====
 setupSwagger(app);
 
 // ===== ROUTES =====
@@ -97,39 +104,29 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/search", searchRoutes);
-app.use('/api/reports', reportRoutes);
+app.use("/api/reports", reportRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-// Simple request tracker middleware (logs each request)
-const requestTracker = (req: Request, _res: Response, next: NextFunction) => {
-  logger.info(`${req.method} ${req.originalUrl}`);
-  next();
-};
+app.use("/api/health", healthRoutes);
 
-app.use(requestTracker);
-app.use("/api", healthRoutes);
-
-app.use("/api/queue", queueRoutes);
-if (cacheRoutes) {
-  app.use("/api/cache", cacheRoutes);
-}
+if (queueRoutes) app.use("/api/queue", queueRoutes);
+if (cacheRoutes) app.use("/api/cache", cacheRoutes);
 
 // ===== CACHED ROUTES =====
-// Products - cached for 5 minutes (300 seconds)
 app.get("/api/products", cacheMiddleware(300), getAllProducts);
-// Product by ID - cached for 10 minutes (600 seconds)
 app.get("/api/products/:id", cacheMiddleware(600), getProductById);
-// Categories - cached for 10 minutes (600 seconds)
 app.get("/api/products/categories", cacheMiddleware(600), getAllCategories);
 
 // ===== HEALTH CHECK =====
 app.get("/health", (_req: Request, res: Response) => {
+  const redisStatus = redisClient.isReady ? "Connected" : "Disconnected";
   res.json({
     status: "OK",
-    timestamp: new Date(),
+    timestamp: new Date().toISOString(),
     mongodb: mongoose.connection.readyState === 1 ? "Connected" : "Disconnected",
-    redis: "Connected", // This will be updated dynamically
+    redis: redisStatus,
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || "development",
+    version: "1.0.0",
   });
 });
 
@@ -147,7 +144,11 @@ app.get("/", (_req: Request, res: Response) => {
       orders: "/api/orders",
       payments: "/api/payments",
       search: "/api/search",
-      cache: "/api/cache",
+      cache: cacheRoutes ? "/api/cache" : "disabled",
+      queue: queueRoutes ? "/api/queue" : "disabled",
+      reports: "/api/reports",
+      dashboard: "/api/dashboard",
+      docs: "/api-docs",
       websocket: `ws://localhost:${PORT}`,
     },
   });
@@ -172,17 +173,40 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
+// ===== GRACEFUL SHUTDOWN =====
+const gracefulShutdown = async () => {
+  logger.info("🛑 Received shutdown signal. Gracefully shutting down...");
+  try {
+    await mongoose.disconnect();
+    await redisClient.quit();
+    server.close(() => {
+      logger.info("💤 HTTP server closed.");
+      process.exit(0);
+    });
+  } catch (err) {
+    logger.error(`❌ Error during shutdown: ${err}`);
+    process.exit(1);
+  }
+};
+
+process.on("SIGINT", gracefulShutdown);
+process.on("SIGTERM", gracefulShutdown);
+process.on("uncaughtException", (err) => {
+  logger.error(`💥 Uncaught exception: ${err.message}`);
+  process.exit(1);
+});
+process.on("unhandledRejection", (reason) => {
+  logger.error(`💥 Unhandled rejection: ${reason}`);
+  process.exit(1);
+});
+
 // ===== START SERVER =====
 
 const startServer = async () => {
   try {
-    // Connect to MongoDB
     await connectDB();
-
-    // Connect to Redis
     await connectRedis();
 
-    // Initialize Socket.io
     initializeSocket(server);
 
     server.listen(PORT, () => {
@@ -193,8 +217,9 @@ const startServer = async () => {
       console.log(`📊 Environment: ${process.env.NODE_ENV || "development"}`);
       console.log(`📦 Database: ${mongoose.connection.name}`);
       console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
+      console.log(`📚 Swagger: http://localhost:${PORT}/api-docs`);
       console.log(`${"=".repeat(60)}\n`);
-      
+
       console.log(`📋 AVAILABLE ENDPOINTS:\n`);
       console.log(`   ❤️  Health    → GET  /health`);
       console.log(`   🔐  Auth      → /api/auth`);
@@ -204,6 +229,10 @@ const startServer = async () => {
       console.log(`   💳  Payment   → /api/payments`);
       console.log(`   🔍  Search    → /api/search`);
       if (cacheRoutes) console.log(`   🗄️  Cache      → /api/cache`);
+      if (queueRoutes) console.log(`   📋  Queue      → /api/queue`);
+      console.log(`   📊  Reports   → /api/reports`);
+      console.log(`   📈  Dashboard → /api/dashboard`);
+      console.log(`   📚  Docs      → /api-docs`);
       console.log(`   🔌  WebSocket → ws://localhost:${PORT}`);
       console.log(`\n${"=".repeat(60)}`);
       console.log(`✅ API ready to accept requests\n`);
