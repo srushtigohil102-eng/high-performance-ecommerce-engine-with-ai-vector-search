@@ -9,6 +9,7 @@ import {
 } from "../controllers/order.controller";
 import { authenticate } from "../middleware/auth.middleware";
 import { requireAdmin } from "../middleware/role.middleware";
+// socket service not used in routes; import removed to avoid unused import warning
 
 const router = Router();
 
