@@ -1,6 +1,6 @@
 # E-Commerce API Server
 
-Express + MongoDB + Redis backend with JWT auth, product management, cart/checkout, order tracking, admin panel, and AI vector search.
+Express + MongoDB + Redis backend with JWT auth, product management, cart/checkout, order tracking, admin panel, and full-text product search (with a scaffolded vector-search upgrade path).
 
 ---
 
@@ -24,6 +24,7 @@ Copy `.env.example` to `.env` and adjust:
 | `REDIS_URL`    | Redis connection URL                     | `redis://localhost:6379`                  |
 | `JWT_SECRET`   | Secret key for signing JWT tokens        | `your-super-secret-jwt-key-change-in-production` |
 | `CORS_ORIGIN`  | Allowed CORS origin (frontend URL)       | `http://localhost:5173`                   |
+| `AUTH_RATE_LIMIT_MAX` | Auth route rate limit per 15 min per IP | `100` |
 | `OPENAI_API_KEY` | Optional — enables vector search embeddings | —                                        |
 
 ### Run Locally
@@ -33,11 +34,13 @@ npm install
 npm run dev          # starts ts-node-dev with hot reload
 ```
 
-Seed the database with sample products:
+Seed the database with sample products (optional):
 
 ```bash
 npm run seed
 ```
+
+The server **auto-seeds on first boot**: if the database is empty it creates 2 demo users (`admin@example.com` / `admin123`, `customer@example.com` / `customer123`), 73 products across 10 categories, and 5 discount codes (e.g. `SAVE10`). `npm run seed` is only needed to reset/re-seed an existing database.
 
 ### Run via Docker
 
@@ -50,7 +53,7 @@ This starts three containers:
 - **mongo** (MongoDB 7, port 27017)
 - **redis** (Redis 7, port 6379)
 
-The server reaches mongo/redis by Docker service name, so `MONGO_URI` and `REDIS_URL` in `.env` are overridden by `docker-compose.yml`.
+The server reaches mongo/redis by Docker service name, so `MONGO_URI` and `REDIS_URL` in `.env` are overridden by `docker-compose.yml`. A fresh `mongo_data` volume is empty on first boot — the server's auto-seed populates it automatically, so `docker-compose up` is immediately usable.
 
 ---
 
@@ -73,7 +76,7 @@ No auth required.
 
 #### `POST /api/auth/register`
 
-Rate-limited: **5 requests per 15 minutes per IP**.
+Rate-limited: **100 requests per 15 minutes per IP** (configurable via `AUTH_RATE_LIMIT_MAX`).
 
 **Body**
 ```json
@@ -108,7 +111,7 @@ curl -X POST http://localhost:5000/api/auth/register \
 
 #### `POST /api/auth/login`
 
-Rate-limited: **5 requests per 15 minutes per IP**.
+Rate-limited: **100 requests per 15 minutes per IP** (configurable via `AUTH_RATE_LIMIT_MAX`).
 
 **Body**
 ```json
@@ -279,12 +282,12 @@ Auth required: **admin** (Bearer token).
 
 #### `GET /api/search`
 
-Public. AI-powered semantic search with MongoDB full-text fallback.
+Public. Full-text product search built on MongoDB `$text` weighted scoring (name 10x, description 5x, category 3x), with typo-tolerant fallbacks: Levenshtein-distance matching (up to 2 edits) and regex partial matching. A semantic vector path (`$vectorSearch` + OpenAI embeddings) is scaffolded and auto-activates only if product embeddings exist — see Known Limitations below.
 
 **Query params**
 | Param   | Type   | Default | Description                |
 | ------- | ------ | ------- | -------------------------- |
-| `q`     | string | —       | Search query (required)    |
+| `q`     | string | —       | Search query (optional — empty returns no results) |
 | `page`  | number | `1`     | Page number                |
 | `limit` | number | `12`    | Items per page (max 50)   |
 
@@ -300,9 +303,9 @@ Public. AI-powered semantic search with MongoDB full-text fallback.
 }
 ```
 
-`searchMethod` is `"text"` (full-text search) or `"vector"` (Atlas vector search).
+`searchMethod` reports which engine produced the results: `"text"` (MongoDB `$text`), `"fuzzy"` (Levenshtein typo match), `"regex"` (partial match), or `"none"` (empty query / no matches). A `"vector"` value appears only when embeddings are present.
 
-**Errors** — `400` (missing `q`)
+**Errors** — none expected for bad input: missing/empty/malformed `q` returns `200` with an empty `products` array. A `500` only occurs on a genuine server/database failure.
 
 **Example**
 ```bash
@@ -412,7 +415,7 @@ Dashboard statistics.
 
 Paginated list of all orders.
 
-**Query params**: `page` (default 1), `limit` (default 20)
+**Query params**: `page` (default 1), `limit` (default 20), `status` (optional — filter by `pending`/`confirmed`/`shipped`/`delivered`)
 
 **Response `200`**
 ```json
@@ -456,10 +459,22 @@ Valid statuses: `pending`, `confirmed`, `shipped`, `delivered`.
 
 - **Helmet** — secure HTTP headers (CSP, X-Frame-Options, etc.) globally enabled.
 - **CORS** — locked to the frontend origin from `CORS_ORIGIN` env var (no wildcard).
-- **Rate limiting** — auth routes (`/register`, `/login`) limited to 5 requests per 15 minutes per IP.
+- **Rate limiting** — auth routes (`/register`, `/login`) limited to 100 requests per 15 minutes per IP (configurable via `AUTH_RATE_LIMIT_MAX`).
 - **Input validation** — all `POST`/`PUT`/`PATCH` routes validate required fields and types via `express-validator` before reaching controllers.
 - **JWT auth** — tokens expire after 7 days. Passwords hashed with bcrypt (salt rounds: 10).
 - **RBAC** — admin routes guarded by `adminMiddleware` which checks `role: "admin"`.
+
+---
+
+## Known Limitations
+
+1. **Vector search requires Atlas + OpenAI** — The production search path is MongoDB full-text (`$text` weighted scoring) with typo-tolerant fallbacks (Levenshtein + regex partial match). It works on any MongoDB instance with zero external setup and is what the demo uses. The true semantic vector path (`$vectorSearch` + `embedding` field, cosine similarity) is scaffolded but requires an `OPENAI_API_KEY` and an Atlas vector search index; the controller auto-falls back to text search when embeddings are unavailable.
+2. **Docker Compose not verified live on the authoring machine** — Docker is not installed on the dev machine, so `docker-compose up` was not executed end-to-end here. `docker-compose.yml` and the `Dockerfile` are provided and statically consistent, and the auto-seed guarantees a fresh volume is immediately usable, but a live container run should be confirmed on a machine with Docker before relying on it.
+3. **Redis is optional** — If Redis is unavailable the server logs "Redis unavailable — running without cache" and continues; caching is skipped but every endpoint still works.
+4. **Auth rate limiting is intentionally permissive** — register/login default to 100 requests/15 min per IP to keep demos friction-free. Tighten this (e.g. `AUTH_RATE_LIMIT_MAX=10`) in production.
+5. **JWT sessions only** — 7-day expiring tokens with no refresh-token rotation or server-side revocation; a leaked token is valid until expiry.
+6. **Discount codes are global and not one-time-use** — codes like `SAVE10` apply to any checkout; there is no per-code usage cap or user binding.
+7. **Single-developer scope** — This backend was built solo, covering the scope of a three-person team's server work. Some areas favor breadth over depth (see the client README for the frontend's equivalent note).
 
 ---
 
@@ -470,10 +485,11 @@ server/
   src/
     config/         db.ts, redis.ts
     controllers/    authController, productController, orderController, searchController
+    data/           seedData.ts (shared demo products, users, discount codes)
     middleware/     authMiddleware (JWT), adminMiddleware (role check), validate (express-validator chains)
     models/         User, Product, Order, DiscountCode
     routes/         auth, products, orders, admin, search
-    utils/          generateToken
+    utils/          generateToken, seedIfEmpty (auto-seed on empty database)
     index.ts        App entry point
   scripts/          seed.ts, generateEmbeddings.ts
   Dockerfile
