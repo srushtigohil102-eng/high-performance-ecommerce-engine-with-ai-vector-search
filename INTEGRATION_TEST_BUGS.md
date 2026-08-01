@@ -56,15 +56,17 @@
 
 ## Minor Notes (not fixed, observed during testing)
 
-1. **No registration page in frontend:** The frontend has no `/register` route/page. Users must register via API directly. The LoginPage only has sign-in. (Low priority, can be added.)
+> **Amendment (2026-08-01, Week 4 final review):** The notes below reflect the Day-2 build. Current status of each item is marked inline — items 1-4 have since been resolved in the Weeks 3-4 work. Only item 5 reflects current behavior.
 
-2. **"electro" search returns 0 results:** The text index doesn't match "electro" to "Electronics" (grapheme-level difference — text search stems by word boundaries but "electro" vs "Electronics" don't share a stem). The regex/Levenshtein fallbacks also don't match because no product name contains "e-l-e-c-t-r-o" in sequence. This is expected behavior for the current approach (name-only regex). Category filtering remains available as a separate mechanism. Not a bug.
+1. **No registration page in frontend:** The frontend has no `/register` route/page. Users must register via API directly. The LoginPage only has sign-in. (Low priority, can be added.) — **Resolved:** `client/src/pages/RegisterPage.tsx` added in Week 4 with full form validation and auto sign-in.
 
-3. **Search page references "Accessories" category:** The "No results" view shows links to "Electronics", "Clothing", and "Accessories" categories, but "Accessories" doesn't exist in the seed data. Minor UI cosmetic issue.
+2. **"electro" search returns 0 results:** The text index doesn't match "electro" to "Electronics" (grapheme-level difference — text search stems by word boundaries but "electro" vs "Electronics" don't share a stem). The regex/Levenshtein fallbacks also don't match because no product name contains "e-l-e-c-t-r-o" in sequence. This is expected behavior for the current approach (name-only regex). Category filtering remains available as a separate mechanism. Not a bug. — **Resolved:** the regex fallback now also matches `category`, so `electro` returns the 10 Electronics products (`searchMethod: "regex"`).
 
-4. **Rate limiter on auth routes (5 req / 15 min):** Functional but aggressive during testing. Fine for production.
+3. **Search page references "Accessories" category:** The "No results" view shows links to "Electronics", "Clothing", and "Accessories" categories, but "Accessories" doesn't exist in the seed data. Minor UI cosmetic issue. — **Resolved:** "Accessories" link removed from the search no-results view.
 
-5. **Redis unavailable on local dev:** Gracefully handled by the server (falls back to no-cache mode). Expected behavior.
+4. **Rate limiter on auth routes (5 req / 15 min):** Functional but aggressive during testing. Fine for production. — **Resolved:** default raised to 100 req / 15 min per IP, configurable via `AUTH_RATE_LIMIT_MAX`.
+
+5. **Redis unavailable on local dev:** Gracefully handled by the server (falls back to no-cache mode). Expected behavior. — **Still accurate:** caching is skipped when Redis is down; all endpoints continue to work.
 
 ---
 
