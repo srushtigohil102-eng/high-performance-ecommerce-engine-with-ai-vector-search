@@ -188,7 +188,23 @@ src/
 3. **Payment is mock only** — Only "Cash on Delivery" and a fake "Mock Card" option are offered. No real payment gateway or card processing is integrated.
 4. **Product images are placeholders** — Seed products use picsum.photos placeholder URLs, which depend on an external service being reachable.
 5. **401 redirect does a full page reload** — The Axios interceptor redirects via `window.location.href`, which loses React state. Acceptable for the current scope.
-6. **Single-developer scope** — This frontend was built solo, covering the scope of a three-person team's client work (see the server README for the backend's equivalent note). Some areas favor breadth over depth.
+6. **Single-developer scope** — This frontend was built solo, covering the scope of a three-person team's client work (see the server README for the backend's equivalent note). Some areas favor breadth over depth. See *Team & Contribution Transparency* below for the full picture.
+
+---
+
+## Team & Contribution Transparency
+
+This project was scoped as a **three-person team**: a frontend developer, a backend developer, and an AI/search engineer. During Weeks 1-4 the assigned team members were inactive, so **all frontend, backend, and AI/search work in this repository was completed by one author** (the repository's author), covering all three roles' scope.
+
+What that means concretely:
+
+| Intended role | Scope covered by the author |
+|---------------|-----------------------------|
+| Frontend developer | This entire `client/` — React 19 app, all pages, routing, state, styling, responsive design |
+| Backend developer | Entire `server/` — Express API, MongoDB models, JWT auth, RBAC, Redis caching, Docker setup |
+| AI/search engineer | `GET /api/search` — MongoDB `$text` weighted search + Levenshtein/regex typo fallbacks + scaffolded vector-search path |
+
+This is documented openly rather than hidden: the code, tests, and bug-fix history (`INTEGRATION_TEST_BUGS.md`) are all attributable to a single contributor, and the scope was delivered in full across Weeks 1-4.
 
 ---
 
@@ -209,7 +225,7 @@ These queries showcase the search engine's relevance ranking and typo tolerance 
 
 ## Demo Script
 
-A structured 5-minute demo walkthrough is available in [`DEMO_SCRIPT.md`](../DEMO_SCRIPT.md), covering all features with talking points and a pre-demo checklist.
+A structured step-by-step demo walkthrough is available in [`DEMO_SCRIPT.md`](../DEMO_SCRIPT.md), covering the full purchase journey with search examples, talking points, and a pre-demo checklist.
 
 ---
 

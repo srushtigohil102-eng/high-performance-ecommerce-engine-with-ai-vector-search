@@ -2,6 +2,40 @@
 
 Express + MongoDB + Redis backend with JWT auth, product management, cart/checkout, order tracking, admin panel, and full-text product search (with a scaffolded vector-search upgrade path).
 
+> **Weeks 1-4 Complete** — Full REST API delivered and stabilized for final review: auth + RBAC, product CRUD with Redis caching, checkout with stock decrement and discount validation, order lifecycle, admin stats, and a reliable multi-method search endpoint.
+
+---
+
+## Weeks 1-4 — Complete Feature Summary
+
+### Authentication & Authorization
+- `POST /api/auth/register` and `POST /api/auth/login` with bcrypt-hashed passwords (salt rounds 10) and 7-day JWT tokens
+- `GET /api/auth/me` to fetch the current user from a Bearer token
+- Rate limiting on auth routes (100 req / 15 min / IP, configurable)
+- Role-based access control: `authMiddleware` (JWT) + `adminMiddleware` (role check) guard all admin routes server-side
+
+### Products
+- Paginated `GET /api/products` with `page` / `limit` (max 50) / `category` filter
+- Product detail, create (admin), update (admin), delete (admin) with `express-validator` input validation
+- Redis caching for list responses (5-min TTL), invalidated on create/update/delete so writes are never stale
+
+### Search
+- `GET /api/search` — MongoDB `$text` weighted scoring (name 10x / description 5x / category 3x) via the `product_text_search` index
+- Typo-tolerant fallbacks: Levenshtein-distance matching (≤2 edits, `searchMethod: "fuzzy"`) and regex partial matching incl. category (`searchMethod: "regex"`)
+- `searchMethod` field reports which engine produced results; malformed/empty queries always return `200` with a products array (never a 500)
+- Semantic vector path (`$vectorSearch` + OpenAI embeddings) scaffolded, auto-activates only when product embeddings exist
+
+### Orders & Checkout
+- `POST /api/orders` — atomic checkout: validates items/stock, decrements stock, snapshots item name/price, applies discount codes server-side
+- `POST /api/orders/discount/validate` — validates a discount code before checkout
+- Customer order history + order detail (owner-only); admin order listing, detail, and status updates (`pending` → `confirmed` → `shipped` → `delivered`)
+- `GET /api/admin/stats` — dashboard totals (products, orders, low-stock, revenue)
+
+### Cross-Cutting
+- Helmet security headers, locked CORS origin, centralized error handling with consistent status codes
+- Auto-seed on empty database (73 products, 2 users, 5 discount codes) so a fresh install is immediately usable
+- Redis failure-isolated: if Redis is down the server logs and continues without cache
+
 ---
 
 ## Setup
@@ -474,7 +508,21 @@ Valid statuses: `pending`, `confirmed`, `shipped`, `delivered`.
 4. **Auth rate limiting is intentionally permissive** — register/login default to 100 requests/15 min per IP to keep demos friction-free. Tighten this (e.g. `AUTH_RATE_LIMIT_MAX=10`) in production.
 5. **JWT sessions only** — 7-day expiring tokens with no refresh-token rotation or server-side revocation; a leaked token is valid until expiry.
 6. **Discount codes are global and not one-time-use** — codes like `SAVE10` apply to any checkout; there is no per-code usage cap or user binding.
-7. **Single-developer scope** — This backend was built solo, covering the scope of a three-person team's server work. Some areas favor breadth over depth (see the client README for the frontend's equivalent note).
+7. **Single-developer scope** — This backend was built solo, covering the scope of a three-person team's server work. Some areas favor breadth over depth (see the client README for the frontend's equivalent note). See *Team & Contribution Transparency* below.
+
+---
+
+## Team & Contribution Transparency
+
+This project was scoped as a **three-person team**: a frontend developer, a backend developer, and an AI/search engineer. During Weeks 1-4 the assigned team members were inactive, so **all frontend, backend, and AI/search work in this repository was completed by one author** (the repository's author), covering all three roles' scope.
+
+| Intended role | Scope covered by the author |
+|---------------|-----------------------------|
+| Frontend developer | Entire `client/` — React 19 app, all pages, routing, state, styling, responsive design |
+| Backend developer | This entire `server/` — Express API, MongoDB models, JWT auth, RBAC, Redis caching, Docker setup |
+| AI/search engineer | `GET /api/search` — MongoDB `$text` weighted search + Levenshtein/regex typo fallbacks + scaffolded vector-search path |
+
+This is documented openly rather than hidden: the code, tests, and bug-fix history (`INTEGRATION_TEST_BUGS.md`) are all attributable to a single contributor, and the scope was delivered in full across Weeks 1-4.
 
 ---
 
