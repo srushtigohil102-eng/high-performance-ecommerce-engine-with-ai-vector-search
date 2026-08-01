@@ -92,9 +92,14 @@ export default function Navbar() {
               Logout
             </button>
           ) : (
-            <NavLink to="/login" className={linkClass}>
-              Login
-            </NavLink>
+            <>
+              <NavLink to="/register" className={linkClass}>
+                Register
+              </NavLink>
+              <NavLink to="/login" className={linkClass}>
+                Login
+              </NavLink>
+            </>
           )}
         </div>
 
@@ -148,9 +153,14 @@ export default function Navbar() {
               Logout
             </button>
           ) : (
-            <NavLink to="/login" className="rounded-lg px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100" onClick={closeMobile}>
-              Login
-            </NavLink>
+            <>
+              <NavLink to="/register" className="rounded-lg px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100" onClick={closeMobile}>
+                Register
+              </NavLink>
+              <NavLink to="/login" className="rounded-lg px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100" onClick={closeMobile}>
+                Login
+              </NavLink>
+            </>
           )}
         </div>
       )}

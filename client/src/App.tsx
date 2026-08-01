@@ -14,6 +14,7 @@ import OrderConfirmationPage from './pages/OrderConfirmationPage'
 import OrderHistoryPage from './pages/OrderHistoryPage'
 import OrderDetailPage from './pages/OrderDetailPage'
 import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
 import AdminPage from './pages/AdminPage'
 import AdminDashboardPage from './pages/admin/AdminDashboardPage'
 import AdminOrdersPage from './pages/admin/AdminOrdersPage'
@@ -37,6 +38,7 @@ export default function App() {
               <Route path="/orders" element={<OrderHistoryPage />} />
               <Route path="/orders/:orderId" element={<OrderDetailPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<AdminDashboardPage />} />

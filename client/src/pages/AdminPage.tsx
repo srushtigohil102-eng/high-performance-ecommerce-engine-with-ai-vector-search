@@ -199,10 +199,8 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div className="mb-4 rounded-md bg-red-50 border border-red-200 p-3 text-xs text-red-800">
-        <strong>SECURITY BLOCKER:</strong> Backend RBAC enforcement is NOT implemented.
-        Any authenticated user can hit admin API endpoints directly. Frontend route guard alone is NOT real security.
-        This must be enforced server-side before production.
+      <div className="mb-4 rounded-md bg-blue-50 border border-blue-200 p-3 text-xs text-blue-800">
+        Manage the product catalog. Changes take effect immediately for all visitors.
       </div>
 
       {products.length === 0 ? (

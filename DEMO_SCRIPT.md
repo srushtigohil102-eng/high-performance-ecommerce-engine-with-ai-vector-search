@@ -1,7 +1,7 @@
-# Mid Review Demo Script
+# Final Review Demo Script
 
 **Duration:** ~5 minutes
-**Prerequisites:** `npm run dev` running in `client/` (dev mode uses mock data fallback when no backend)
+**Prerequisites:** `npm run dev` running in `client/` **and** the API server running on `http://localhost:5000` (seeded database with 73 products).
 
 ---
 
@@ -9,7 +9,7 @@
 
 ### 1. Home Page — Product Browsing (30s)
 - Open `http://localhost:5173/`
-- Point out the product grid with 12 mock products
+- Point out the product grid with 73 seeded products
 - Show responsive layout (resize browser to show 1-col mobile → 4-col desktop)
 - **Mobile check:** Open DevTools device toolbar, show hamburger nav works
 
@@ -49,7 +49,7 @@
 - Increase quantity of one item → subtotal updates
 - Remove an item → it disappears, subtotal updates
 - Show empty cart state: "Your cart is empty" with "Browse Products" link
-- Note: "Checkout coming soon — Week 3"
+- Note: checkout is live — continue to the cart → checkout flow in the next steps
 
 ### 8. Login (40s)
 - Click "Login" in navbar
@@ -95,7 +95,7 @@
 - **Routing:** React Router v7 with nested routes and layout pattern
 - **HTTP:** Axios with JWT interceptor, automatic token management
 
-### What's Working (Week 2 Complete)
+### What's Working (Complete through Week 4)
 - Full product browsing with filter, search, pagination
 - Product detail with stock-aware quantity selector
 - Shopping cart with optimistic updates and backend sync readiness
@@ -108,13 +108,13 @@
 - Loading states with descriptive messages
 - Empty states with actionable CTAs
 
-### Blocked by Backend (Flag to Backend Team)
-- Redis caching (no backend server yet)
-- Cache invalidation (no backend)
-- AI vector search endpoint `/api/search` (planned Week 3)
-- Server-side RBAC enforcement (route guard is frontend-only)
-- Checkout/payment flow
-- Real database persistence
+### Previously Backend-Dependent (Now Implemented)
+- Redis caching (product list + search results, 5-min TTL, invalidated on writes)
+- Cache invalidation on product create/update/delete and order placement
+- Search endpoint `/api/search` (MongoDB `$text` weighted scoring + Levenshtein and regex typo fallbacks; vector search scaffolded for Atlas + OpenAI)
+- Server-side RBAC enforcement (adminMiddleware)
+- Checkout/payment flow (mock payment)
+- Real database persistence (MongoDB via Mongoose, auto-seeded on empty database)
 
 ---
 

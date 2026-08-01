@@ -6,16 +6,16 @@
  * in React context + localStorage. These functions are no-ops that
  * exist to satisfy the CartContext imports without breaking the app.
  *
- * The discount validation uses the real backend endpoint: POST /api/discount/validate
+ * The discount validation uses the real backend endpoint: POST /api/orders/discount/validate
  */
 
-import type { DiscountCode } from '../types'
+import type { CartItem, CartSummary, DiscountCode } from '../types'
 import { apiClient } from './apiClient'
 
 // ─── Cart sync stubs (no backend cart API) ──────────────────────────────────
 // Cart is managed entirely in frontend state (CartContext + localStorage).
 
-export async function fetchCartFromBackend(): Promise<never[]> {
+export async function fetchCartFromBackend(): Promise<CartItem[]> {
   // No backend cart — return empty so CartContext merges with local state
   return []
 }
@@ -54,7 +54,7 @@ export async function applyDiscountBackend(code: string): Promise<DiscountCode> 
 
 // ─── Cart summary (computed client-side) ─────────────────────────────────────
 
-export async function getCartSummaryBackend(): Promise<never> {
+export async function getCartSummaryBackend(): Promise<CartSummary> {
   // Summary is computed client-side in CartContext
   throw new Error('Cart summary is computed client-side')
 }

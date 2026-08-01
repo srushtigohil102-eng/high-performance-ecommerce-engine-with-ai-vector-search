@@ -152,7 +152,7 @@ function toBackendShippingAddress(addr: ShippingAddress) {
   }
 }
 
-export type { RawOrderItem }
+export type { RawOrderItem, RawShippingAddress }
 export { normalizeOrderItem, normalizeShippingAddress }
 
 export async function placeOrder(payload: PlaceOrderPayload): Promise<Order> {

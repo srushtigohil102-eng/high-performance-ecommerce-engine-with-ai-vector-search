@@ -7,4 +7,5 @@ client/.env
 dist/
 build/
 *.log
+*.err
 .DS_Store

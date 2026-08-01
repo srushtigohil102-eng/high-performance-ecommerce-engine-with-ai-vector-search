@@ -7,6 +7,7 @@ export interface AuthContextValue {
   user: User | null
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<boolean>
+  register: (name: string, email: string, password: string) => Promise<boolean>
   logout: () => void
   authError: string | null
   clearError: () => void
@@ -76,6 +77,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [])
 
+  const register = useCallback(async (name: string, email: string, password: string): Promise<boolean> => {
+    setAuthError(null)
+    try {
+      const res = await authService.register({ name, email, password })
+      setAuthToken(res.token)
+      setUser(res.user)
+      return true
+    } catch (err) {
+      const message =
+        (err instanceof Error && err.message) ||
+        'Registration failed. Please try again.'
+      setAuthError(message)
+      return false
+    }
+  }, [])
+
   const logout = useCallback(() => {
     clearAuthToken()
     setUser(null)
@@ -86,8 +103,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const value = useMemo(
-    () => ({ user, isAuthenticated, login, logout, authError, clearError }),
-    [user, isAuthenticated, login, logout, authError, clearError],
+    () => ({ user, isAuthenticated, login, register, logout, authError, clearError }),
+    [user, isAuthenticated, login, register, logout, authError, clearError],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -1,47 +1,52 @@
 import { useState, useEffect, type FormEvent } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
 import Button from '../components/Button'
 import Input from '../components/Input'
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const { login, authError, clearError, user } = useAuth()
+  const { register, authError, clearError, user } = useAuth()
   const { showToast } = useToast()
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [nameError, setNameError] = useState('')
   const [emailError, setEmailError] = useState('')
   const [passwordError, setPasswordError] = useState('')
+  const [confirmError, setConfirmError] = useState('')
   const [submitting, setSubmitting] = useState(false)
-
-  const sessionExpired = searchParams.get('session') === 'expired'
-  const returnTo = searchParams.get('returnTo')
 
   useEffect(() => {
     if (user) {
-      if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
-        navigate(returnTo, { replace: true })
-      } else {
-        navigate(user.role === 'admin' ? '/admin' : '/', { replace: true })
-      }
+      navigate(user.role === 'admin' ? '/admin' : '/', { replace: true })
     }
-  }, [user, navigate, returnTo])
+  }, [user, navigate])
 
+  const isNameValid = name.trim().length >= 1
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   const isPasswordValid = password.length >= 8
-  const isFormValid = isEmailValid && isPasswordValid
+  const isConfirmValid = confirmPassword.length > 0 && confirmPassword === password
+  const isFormValid = isNameValid && isEmailValid && isPasswordValid && isConfirmValid
 
-  function validateField(field: 'email' | 'password'): void {
-    if (field === 'email') {
+  function validateField(field: 'name' | 'email' | 'password' | 'confirm'): void {
+    if (field === 'name') {
+      if (!name.trim()) setNameError('Name is required')
+      else setNameError('')
+    } else if (field === 'email') {
       if (!email) setEmailError('Email is required')
       else if (!isEmailValid) setEmailError('Invalid email format')
       else setEmailError('')
-    } else {
+    } else if (field === 'password') {
       if (!password) setPasswordError('Password is required')
       else if (!isPasswordValid) setPasswordError('Password must be at least 8 characters')
       else setPasswordError('')
+    } else {
+      if (!confirmPassword) setConfirmError('Please confirm your password')
+      else if (confirmPassword !== password) setConfirmError('Passwords do not match')
+      else setConfirmError('')
     }
   }
 
@@ -49,6 +54,9 @@ export default function LoginPage() {
     e.preventDefault()
 
     let valid = true
+    if (!name.trim()) { setNameError('Name is required'); valid = false }
+    else { setNameError('') }
+
     if (!email) { setEmailError('Email is required'); valid = false }
     else if (!isEmailValid) { setEmailError('Invalid email format'); valid = false }
     else { setEmailError('') }
@@ -57,13 +65,17 @@ export default function LoginPage() {
     else if (!isPasswordValid) { setPasswordError('Password must be at least 8 characters'); valid = false }
     else { setPasswordError('') }
 
+    if (!confirmPassword) { setConfirmError('Please confirm your password'); valid = false }
+    else if (confirmPassword !== password) { setConfirmError('Passwords do not match'); valid = false }
+    else { setConfirmError('') }
+
     if (!valid) return
 
     setSubmitting(true)
     try {
-      const success = await login(email, password)
+      const success = await register(name, email, password)
       if (success) {
-        showToast('Login successful')
+        showToast('Account created — you are now signed in')
       }
     } finally {
       setSubmitting(false)
@@ -74,13 +86,8 @@ export default function LoginPage() {
     <div className="mx-auto flex min-h-[60vh] max-w-md items-center justify-center px-4">
       <div className="w-full">
         <h1 className="mb-6 text-center text-3xl font-bold text-gray-900">
-          Sign In
+          Create Account
         </h1>
-        {sessionExpired && (
-          <div className="mb-4 rounded-md bg-yellow-50 p-3 text-sm text-yellow-800" role="alert">
-            Your session has expired. Please sign in again.
-          </div>
-        )}
         {authError && (
           <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert">
             {authError}
@@ -95,9 +102,20 @@ export default function LoginPage() {
         )}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <Input
+            label="Full Name"
+            type="text"
+            required
+            autoComplete="name"
+            value={name}
+            onChange={(e) => { setName(e.target.value); clearError() }}
+            onBlur={() => validateField('name')}
+            error={nameError}
+          />
+          <Input
             label="Email"
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => { setEmail(e.target.value); clearError() }}
             onBlur={() => validateField('email')}
@@ -107,19 +125,30 @@ export default function LoginPage() {
             label="Password"
             type="password"
             required
+            autoComplete="new-password"
             value={password}
             onChange={(e) => { setPassword(e.target.value); clearError() }}
             onBlur={() => validateField('password')}
             error={passwordError}
           />
+          <Input
+            label="Confirm Password"
+            type="password"
+            required
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(e) => { setConfirmPassword(e.target.value); clearError() }}
+            onBlur={() => validateField('confirm')}
+            error={confirmError}
+          />
           <Button type="submit" disabled={!isFormValid || submitting} className="mt-2">
-            {submitting ? 'Signing In...' : 'Sign In'}
+            {submitting ? 'Creating Account...' : 'Create Account'}
           </Button>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">
-          Don&rsquo;t have an account?{' '}
-          <Link to="/register" className="font-semibold text-gray-900 underline hover:text-gray-700">
-            Create one
+          Already have an account?{' '}
+          <Link to="/login" className="font-semibold text-gray-900 underline hover:text-gray-700">
+            Sign in
           </Link>
         </p>
       </div>
