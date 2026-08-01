@@ -8,7 +8,7 @@ const router = Router();
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || "100", 10),
   message: { message: "Too many attempts, please try again after 15 minutes" },
   standardHeaders: true,
   legacyHeaders: false,

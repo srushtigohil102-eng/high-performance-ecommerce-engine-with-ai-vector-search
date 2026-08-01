@@ -8,7 +8,7 @@ import {
 } from "../controllers/productController";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { adminMiddleware } from "../middleware/adminMiddleware";
-import { createProductValidation, updateProductValidation } from "../middleware/validate";
+import { createProductValidation, updateProductValidation, idParamValidation } from "../middleware/validate";
 
 const router = Router();
 
@@ -16,7 +16,7 @@ const router = Router();
 router.get("/", getProducts);
 
 // GET /api/products/:id — public, cached
-router.get("/:id", getProductById);
+router.get("/:id", idParamValidation, getProductById);
 
 // POST /api/products — admin only
 router.post("/", authMiddleware, adminMiddleware, createProductValidation, createProduct);
@@ -25,6 +25,6 @@ router.post("/", authMiddleware, adminMiddleware, createProductValidation, creat
 router.put("/:id", authMiddleware, adminMiddleware, updateProductValidation, updateProduct);
 
 // DELETE /api/products/:id — admin only
-router.delete("/:id", authMiddleware, adminMiddleware, deleteProduct);
+router.delete("/:id", authMiddleware, adminMiddleware, idParamValidation, deleteProduct);
 
 export default router;

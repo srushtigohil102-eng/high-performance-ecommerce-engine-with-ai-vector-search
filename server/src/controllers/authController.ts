@@ -34,7 +34,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       token,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: (error as Error).message });
+    console.error("Error registering user:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -74,7 +75,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       token,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: (error as Error).message });
+    console.error("Error logging in:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -88,6 +90,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
     }
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Error fetching current user:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };

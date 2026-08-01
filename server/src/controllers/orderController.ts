@@ -6,11 +6,18 @@ import { DiscountCode } from "../models/DiscountCode";
 import { User } from "../models/User";
 import { getRedisClient } from "../config/redis";
 
-const invalidateProductCache = async (): Promise<void> => {
+const invalidateProductCache = async (productIds: string[] = []): Promise<void> => {
   try {
     const redis = getRedisClient();
-    const keys = await redis.keys("products:list:*");
-    if (keys.length > 0) await redis.del(keys);
+    const patterns = [
+      "products:list:*",
+      "search:*",
+      ...productIds.map((id) => `products:item:${id}`),
+    ];
+    for (const pattern of patterns) {
+      const keys = await redis.keys(pattern);
+      if (keys.length > 0) await redis.del(keys);
+    }
   } catch {
     // Redis unavailable
   }
@@ -123,11 +130,12 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
     });
 
     // Invalidate product caches (stock changed)
-    await invalidateProductCache();
+    await invalidateProductCache(productIds);
 
     res.status(201).json(order);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: (error as Error).message });
+    console.error("Error creating order:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -139,7 +147,8 @@ export const getMyOrders = async (req: AuthRequest, res: Response): Promise<void
       .populate("items.product", "name imageUrl");
     res.json(orders);
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Error fetching user orders:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -167,25 +176,29 @@ export const getOrderById = async (req: AuthRequest, res: Response): Promise<voi
 
     res.json(order);
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Error fetching order:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
 // GET /api/admin/orders — all orders (admin)
 export const getAllOrders = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
     const skip = (page - 1) * limit;
 
+    const status = req.query.status as string | undefined;
+    const filter = status ? { status } : {};
+
     const [orders, total] = await Promise.all([
-      Order.find()
+      Order.find(filter)
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 })
         .populate("user", "name email")
         .populate("items.product", "name imageUrl"),
-      Order.countDocuments(),
+      Order.countDocuments(filter),
     ]);
 
     res.json({
@@ -196,7 +209,8 @@ export const getAllOrders = async (req: AuthRequest, res: Response): Promise<voi
       totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Error fetching all orders:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -226,11 +240,12 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response): Promis
 
     res.json(order);
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Error updating order status:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
-// POST /api/discount/validate — validate discount code
+// POST /api/orders/discount/validate — validate discount code
 export const validateDiscount = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { code } = req.body;
@@ -256,7 +271,8 @@ export const validateDiscount = async (req: AuthRequest, res: Response): Promise
       message: `${discountCode.percentage}% discount applied`,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Error validating discount:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -274,7 +290,8 @@ export const getAdminOrderById = async (req: AuthRequest, res: Response): Promis
 
     res.json(order);
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Error fetching admin order:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -299,6 +316,7 @@ export const getAdminStats = async (_req: AuthRequest, res: Response): Promise<v
       totalRevenue,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Error fetching admin stats:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };

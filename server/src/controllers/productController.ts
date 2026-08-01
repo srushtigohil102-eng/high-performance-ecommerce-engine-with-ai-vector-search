@@ -14,12 +14,14 @@ const buildProductCacheKey = (prefix: string, query: Record<string, string | und
   return `products:${prefix}:${sorted || "all"}`;
 };
 
-const invalidateProductCache = async (pattern: string): Promise<void> => {
+const invalidateProductCache = async (patterns: string[]): Promise<void> => {
   try {
     const redis = getRedisClient();
-    const keys = await redis.keys(pattern);
-    if (keys.length > 0) {
-      await redis.del(keys);
+    for (const pattern of patterns) {
+      const keys = await redis.keys(pattern);
+      if (keys.length > 0) {
+        await redis.del(keys);
+      }
     }
   } catch {
     // Redis might be down; don't crash the app
@@ -29,8 +31,8 @@ const invalidateProductCache = async (pattern: string): Promise<void> => {
 // GET /api/products
 export const getProducts = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 12;
+    const page = Math.max(1, parseInt(req.query.page as string) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 12));
     const category = req.query.category as string | undefined;
     const search = req.query.search as string | undefined;
     const skip = (page - 1) * limit;
@@ -74,7 +76,8 @@ export const getProducts = async (req: AuthRequest, res: Response): Promise<void
 
     res.json(result);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: (error as Error).message });
+    console.error("Error listing products:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -110,7 +113,8 @@ export const getProductById = async (req: AuthRequest, res: Response): Promise<v
 
     res.json(product);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: (error as Error).message });
+    console.error("Error fetching product:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -133,11 +137,12 @@ export const createProduct = async (req: AuthRequest, res: Response): Promise<vo
       stock: stock || 0,
     });
 
-    await invalidateProductCache("products:list:*");
+    await invalidateProductCache(["products:list:*", "search:*"]);
 
     res.status(201).json(product);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: (error as Error).message });
+    console.error("Error creating product:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -158,13 +163,13 @@ export const updateProduct = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     await Promise.all([
-      invalidateProductCache("products:list:*"),
-      invalidateProductCache(`products:item:${id}`),
+      invalidateProductCache(["products:list:*", "search:*", `products:item:${id}`]),
     ]);
 
     res.json(product);
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: (error as Error).message });
+    console.error("Error updating product:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -180,12 +185,12 @@ export const deleteProduct = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     await Promise.all([
-      invalidateProductCache("products:list:*"),
-      invalidateProductCache(`products:item:${id}`),
+      invalidateProductCache(["products:list:*", "search:*", `products:item:${id}`]),
     ]);
 
     res.json({ message: "Product deleted" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: (error as Error).message });
+    console.error("Error deleting product:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };

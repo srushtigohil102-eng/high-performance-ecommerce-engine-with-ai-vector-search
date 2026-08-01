@@ -7,7 +7,7 @@ import {
 } from "../controllers/orderController";
 import { authMiddleware } from "../middleware/authMiddleware";
 import { adminMiddleware } from "../middleware/adminMiddleware";
-import { updateOrderStatusValidation } from "../middleware/validate";
+import { updateOrderStatusValidation, idParamValidation } from "../middleware/validate";
 
 const router = Router();
 
@@ -21,7 +21,7 @@ router.get("/stats", getAdminStats);
 router.get("/orders", getAllOrders);
 
 // GET /api/admin/orders/:id — single order detail
-router.get("/orders/:id", getAdminOrderById);
+router.get("/orders/:id", idParamValidation, getAdminOrderById);
 
 // PATCH /api/admin/orders/:id/status — update order status
 router.patch("/orders/:id/status", updateOrderStatusValidation, updateOrderStatus);

@@ -20,6 +20,11 @@ export const handleValidationErrors = (
   next();
 };
 
+export const idParamValidation = [
+  param("id").isMongoId().withMessage("Invalid ID format"),
+  handleValidationErrors,
+];
+
 export const registerValidation = [
   body("name")
     .trim()
@@ -71,7 +76,7 @@ export const createProductValidation = [
 ];
 
 export const updateProductValidation = [
-  param("id").notEmpty().withMessage("Product ID is required"),
+  param("id").isMongoId().withMessage("Invalid ID format"),
   body("name")
     .optional()
     .trim()
@@ -89,7 +94,8 @@ export const createOrderValidation = [
   body("items")
     .isArray({ min: 1 }).withMessage("At least one item is required"),
   body("items.*.product")
-    .notEmpty().withMessage("Product ID is required for each item"),
+    .notEmpty().withMessage("Product ID is required for each item")
+    .isMongoId().withMessage("Invalid product ID format"),
   body("items.*.quantity")
     .isInt({ min: 1 }).withMessage("Quantity must be at least 1 for each item"),
   body("shippingAddress")
@@ -116,6 +122,7 @@ export const createOrderValidation = [
 ];
 
 export const updateOrderStatusValidation = [
+  param("id").isMongoId().withMessage("Invalid ID format"),
   body("status")
     .trim()
     .notEmpty().withMessage("Status is required")
@@ -126,6 +133,7 @@ export const updateOrderStatusValidation = [
 
 export const validateDiscountValidation = [
   body("code")
+    .isString().withMessage("Discount code must be a string")
     .trim()
     .notEmpty().withMessage("Discount code is required"),
   handleValidationErrors,

@@ -6,6 +6,8 @@ import cors from "cors";
 import helmet from "helmet";
 import connectDB from "./config/db";
 import { connectRedis } from "./config/redis";
+import { Product } from "./models/Product";
+import { seedIfEmpty } from "./utils/seedIfEmpty";
 import authRoutes from "./routes/authRoutes";
 import productRoutes from "./routes/productRoutes";
 import orderRoutes from "./routes/orderRoutes";
@@ -61,11 +63,16 @@ app.use(
 const start = async () => {
   try {
     await connectDB();
+    // Build schema indexes (incl. the $text search index) explicitly — Mongoose
+    // disables autoIndex under NODE_ENV=production, and search silently 500s
+    // without the text index on a fresh database.
+    await Product.init();
     try {
       await connectRedis();
     } catch {
       console.warn("Redis unavailable — running without cache");
     }
+    await seedIfEmpty();
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
