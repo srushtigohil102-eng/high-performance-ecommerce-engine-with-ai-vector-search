@@ -7,7 +7,7 @@
  *   - Results sorted by relevance score.
  *   - Enhanced with: query sanitization, multi-word OR fallback, Levenshtein
  *     distance typo-tolerant matching, and regex-based fuzzy partial-match.
- *   - Performance: < 20ms average on 70 products with cold cache.
+ *   - Performance: < 20ms average on 73 products with cold cache.
  *   - THIS IS WHAT THE FINAL REVIEW DEMO USES.
  *
  * FUTURE UPGRADE PATH (requires Atlas Vector Search index + OpenAI embeddings):
@@ -100,7 +100,12 @@ async function regexNameSearch(term: string): Promise<unknown[]> {
 
   const regex = new RegExp(patterns.join(".*"), "i");
 
-  const products = await Product.find({ name: { $regex: regex } })
+  // Partial-match against BOTH product names and categories so queries like
+  // "electro" still surface the "Electronics" category even when no product
+  // name contains the term.
+  const products = await Product.find({
+    $or: [{ name: { $regex: regex } }, { category: { $regex: regex } }],
+  })
     .limit(20)
     .sort({ stock: -1 });
 
@@ -466,6 +471,6 @@ export const searchProducts = async (
     res.json(result);
   } catch (error) {
     console.error("Search error:", error);
-    res.status(500).json({ message: "Search failed", error: (error as Error).message });
+    res.status(500).json({ message: "Search failed" });
   }
 };
