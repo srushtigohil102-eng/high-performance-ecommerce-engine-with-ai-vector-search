@@ -87,6 +87,8 @@ This starts three containers:
 - **mongo** (MongoDB 7, port 27017)
 - **redis** (Redis 7, port 6379)
 
+**Prerequisite:** create `server/.env` first — `docker-compose.yml` loads it via `env_file` (`./server/.env`) and refuses to start if it's missing: `cp .env.example .env`. Only `PORT`, `JWT_SECRET`, `CORS_ORIGIN`, and `OPENAI_API_KEY` matter for the container; the `MONGO_URI` and `REDIS_URL` you set there are overridden by the Docker service names below.
+
 The server reaches mongo/redis by Docker service name, so `MONGO_URI` and `REDIS_URL` in `.env` are overridden by `docker-compose.yml`. A fresh `mongo_data` volume is empty on first boot — the server's auto-seed populates it automatically, so `docker-compose up` is immediately usable.
 
 ---
