@@ -8,13 +8,13 @@ import compression from "compression";
 import rateLimit from "express-rate-limit";
 import dotenv from "dotenv";
 import { connectDB } from "./config/database";
-import { redisClient } from "./config/redis"; // ✅ Import for redis status
+import { redisClient } from "./config/redis";
 import logger from "./utils/logger";
 import { initializeSocket } from "./services/socket.service";
 import { connectRedis } from "./config/redis";
-import { cacheMiddleware } from "./middleware/cache.middleware";
 import { setupSwagger } from "./config/swagger";
-import { validateEnv } from "./utils/validateEnv"; // ✅ New: env validation
+import { validateEnv } from "./utils/validateEnv";
+
 
 // Import routes
 import authRoutes from "./routes/auth.routes";
@@ -24,33 +24,22 @@ import orderRoutes from "./routes/order.routes";
 import paymentRoutes from "./routes/payment.routes";
 import searchRoutes from "./routes/search.routes";
 import reportRoutes from './routes/report.routes';
-import dashboardRoutes from "./routes/dashboard.routes";
 import healthRoutes from "./routes/health.routes";
+import emailRoutes from "./routes/email.routes";
+import dashboardRoutes from "./routes/dashboard.routes";
 
-// Optional routes (skip if files don't exist)
+// Optional routes
 let queueRoutes: any = null;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   queueRoutes = require("./routes/queue.routes").default;
-} catch (err) {
-  // ignore
-}
+} catch (err) { /* ignore */ }
 
 let cacheRoutes: any = null;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   cacheRoutes = require("./routes/cache.routes").default;
-} catch (err) {
-  // ignore
-}
-
-// Import controllers for caching
-import { getAllProducts, getProductById } from "./controllers/product.controller";
-import { getAllCategories } from "./controllers/category.controller";
+} catch (err) { /* ignore */ }
 
 dotenv.config();
-
-// ✅ Validate environment variables before starting
 validateEnv();
 
 const app: Application = express();
@@ -59,7 +48,7 @@ const server = createServer(app);
 
 // ===== MIDDLEWARE =====
 
-// Webhook route - raw body required (MUST be before express.json)
+// Webhook - raw body
 app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
 
 app.use(helmet());
@@ -67,20 +56,17 @@ app.use(cors({
   origin: process.env.CLIENT_URL || "http://localhost:5173",
   credentials: true,
 }));
-
 app.use(compression());
-
 app.use(morgan("combined", {
   stream: {
     write: (message) => logger.info(message.trim()),
   },
 }));
 
-// Body parsers
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// ✅ Request tracker – logs every API call (moved before routes)
+// Request logger
 app.use((req: Request, _res: Response, next: NextFunction) => {
   logger.info(`${req.method} ${req.originalUrl}`);
   next();
@@ -99,22 +85,19 @@ setupSwagger(app);
 
 // ===== ROUTES =====
 app.use("/api/auth", authRoutes);
-app.use("/api/products", productRoutes);
+app.use("/api/products", productRoutes);  // ← caching is now applied inside this router
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/reports", reportRoutes);
-app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/admin/dashboard", dashboardRoutes);
 app.use("/api/health", healthRoutes);
+app.use("/api/email", emailRoutes);
+
 
 if (queueRoutes) app.use("/api/queue", queueRoutes);
 if (cacheRoutes) app.use("/api/cache", cacheRoutes);
-
-// ===== CACHED ROUTES =====
-app.get("/api/products", cacheMiddleware(300), getAllProducts);
-app.get("/api/products/:id", cacheMiddleware(600), getProductById);
-app.get("/api/products/categories", cacheMiddleware(600), getAllCategories);
 
 // ===== HEALTH CHECK =====
 app.get("/health", (_req: Request, res: Response) => {
@@ -201,12 +184,10 @@ process.on("unhandledRejection", (reason) => {
 });
 
 // ===== START SERVER =====
-
 const startServer = async () => {
   try {
     await connectDB();
     await connectRedis();
-
     initializeSocket(server);
 
     server.listen(PORT, () => {
@@ -219,7 +200,6 @@ const startServer = async () => {
       console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
       console.log(`📚 Swagger: http://localhost:${PORT}/api-docs`);
       console.log(`${"=".repeat(60)}\n`);
-
       console.log(`📋 AVAILABLE ENDPOINTS:\n`);
       console.log(`   ❤️  Health    → GET  /health`);
       console.log(`   🔐  Auth      → /api/auth`);
