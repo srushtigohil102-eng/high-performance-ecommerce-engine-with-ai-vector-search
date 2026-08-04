@@ -1,5 +1,109 @@
 @import "tailwindcss";
 
+/* Class-based dark mode for Tailwind v4 — toggled via `.dark` on <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Design tokens — single source of truth for both themes */
+  --color-primary: #4f46e5;
+  --color-primary-hover: #4338ca;
+  --color-secondary: #10b981;
+  --color-background: #f9fafb;
+  --color-surface: #ffffff;
+  --color-text: #111827;
+  --color-muted: #6b7280;
+  --color-border: #e5e7eb;
+  --color-success: #16a34a;
+  --color-error: #dc2626;
+  --color-warning: #d97706;
+  --color-accent: #7c3aed;
+
+  /* Motion tokens */
+  --animate-fade-in: fade-in 0.4s ease-out both;
+  --animate-slide-in: slide-in 0.3s ease-out both;
+  --animate-toast-in: toast-in 0.3s ease-out both;
+  --animate-toast-out: toast-out 0.25s ease-in both;
+  --animate-scale-in: scale-in 0.2s ease-out both;
+  --animate-slide-down: slide-down 0.3s ease-out both;
+  --animate-pulse-soft: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes toast-out {
+    from {
+      opacity: 1;
+      transform: none;
+    }
+    to {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes pulse-soft {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+}
+
 html {
   overflow-x: hidden;
 }
@@ -7,6 +111,29 @@ html {
 body {
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
+  background-color: #ffffff;
+  color: #111827;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark body {
+  background-color: #0f172a;
+  color: #f3f4f6;
+}
+
+/* Smooth color transition while switching themes (class is removed after the
+   transition completes so hover/interaction transitions stay snappy) */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    fill 0.3s ease,
+    stroke 0.3s ease,
+    box-shadow 0.3s ease !important;
 }
 
 /* Minimum touch target size for all interactive elements */
@@ -30,7 +157,9 @@ body {
     overflow: hidden;
   }
 
-  input, select, textarea {
+  input,
+  select,
+  textarea {
     font-size: 16px !important;
   }
 }
@@ -48,4 +177,8 @@ body {
 .thin-scrollbar::-webkit-scrollbar-thumb {
   background: #d1d5db;
   border-radius: 2px;
+}
+
+.dark .thin-scrollbar::-webkit-scrollbar-thumb {
+  background: #4b5563;
 }

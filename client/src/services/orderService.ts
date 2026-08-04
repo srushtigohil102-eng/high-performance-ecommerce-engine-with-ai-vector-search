@@ -148,7 +148,7 @@ function toBackendShippingAddress(addr: ShippingAddress) {
     city: addr.city,
     state: addr.state,
     zipCode: addr.postalCode,
-    country: 'US', // default; the form doesn't collect country yet
+    country: 'IN',
   }
 }
 

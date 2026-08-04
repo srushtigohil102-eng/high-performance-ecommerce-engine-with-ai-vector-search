@@ -42,6 +42,12 @@ export interface PaginatedResponse {
   totalPages: number
 }
 
+export type SearchMethod = 'text' | 'fuzzy' | 'regex' | 'vector' | 'none'
+
+export interface SearchResponse extends PaginatedResponse {
+  searchMethod?: SearchMethod
+}
+
 export interface ProductQueryParams {
   page?: number
   limit?: number

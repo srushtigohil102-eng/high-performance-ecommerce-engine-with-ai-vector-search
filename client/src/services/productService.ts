@@ -1,10 +1,10 @@
-import type { Product, ProductPayload, PaginatedResponse, ProductQueryParams } from '../types'
+import type { Product, ProductPayload, PaginatedResponse, SearchResponse, ProductQueryParams } from '../types'
 import { apiClient } from './apiClient'
 
 export async function searchProducts(
   query: string,
   params: { page?: number; limit?: number } = {},
-): Promise<PaginatedResponse> {
+): Promise<SearchResponse> {
   if (!query.trim()) {
     return getProducts(params)
   }
@@ -21,6 +21,7 @@ export async function searchProducts(
     page: data.page ?? params.page ?? 1,
     limit: data.limit ?? params.limit ?? 12,
     totalPages: data.totalPages ?? 1,
+    searchMethod: (data.searchMethod as SearchResponse['searchMethod']) ?? undefined,
   }
 }
 
