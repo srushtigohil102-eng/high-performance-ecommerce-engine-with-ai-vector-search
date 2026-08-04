@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
 import ProductGridSkeleton from '../components/ProductGridSkeleton'
 import ErrorMessage from '../components/ErrorMessage'
@@ -12,7 +12,10 @@ const PRODUCTS_PER_PAGE = 12
 
 export default function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
   const category = searchParams.get('category') ?? ''
+
+  const [heroQuery, setHeroQuery] = useState('')
 
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
@@ -69,6 +72,13 @@ export default function HomePage() {
     [setSearchParams],
   )
 
+  const handleHeroSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const q = heroQuery.trim()
+    if (!q) return
+    navigate(`/search?q=${encodeURIComponent(q)}`)
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Hero banner */}
@@ -83,9 +93,29 @@ export default function HomePage() {
             Browse thousands of products with instant full-text search, typo-tolerant
             matching, and real-time stock updates.
           </p>
+          <form
+            role="search"
+            onSubmit={handleHeroSearch}
+            className="mb-6 flex w-full max-w-xl flex-col gap-2 sm:flex-row"
+          >
+            <input
+              type="search"
+              value={heroQuery}
+              onChange={(e) => setHeroQuery(e.target.value)}
+              placeholder="Search for anything..."
+              aria-label="Search products"
+              className="min-h-[44px] w-full flex-1 rounded-lg border border-white/40 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition placeholder:text-gray-400 focus:border-white focus:outline-none focus:ring-2 focus:ring-white/70 sm:text-base"
+            />
+            <Button
+              type="submit"
+              className="w-full bg-white text-primary! hover:bg-indigo-50 hover:shadow-md hover:-translate-y-0.5 sm:w-auto"
+            >
+              Search
+            </Button>
+          </form>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link to="/?category=Electronics" className="sm:w-auto">
-              <Button className="w-full bg-white text-primary hover:bg-gray-100 focus:ring-white sm:w-auto">
+              <Button className="w-full bg-white text-primary! hover:bg-indigo-50 hover:shadow-md hover:-translate-y-0.5 sm:w-auto">
                 Shop Electronics
               </Button>
             </Link>
