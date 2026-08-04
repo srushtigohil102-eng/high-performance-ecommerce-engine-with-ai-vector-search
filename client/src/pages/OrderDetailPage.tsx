@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { getOrderById } from '../services/orderService'
 import { useAuth } from '../hooks/useAuth'
+import { formatCurrency } from '../utils/formatCurrency'
 import Button from '../components/Button'
 import ErrorMessage from '../components/ErrorMessage'
 import ProductImage from '../components/ProductImage'
@@ -14,10 +15,10 @@ const PAYMENT_LABELS: Record<string, string> = {
 }
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  confirmed: 'bg-blue-100 text-blue-800',
-  shipped: 'bg-purple-100 text-purple-800',
-  delivered: 'bg-green-100 text-green-800',
+  pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+  confirmed: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+  delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
 }
 
 function OrderDetailPage() {
@@ -44,12 +45,12 @@ function OrderDetailPage() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login')
+      navigate(`/login?returnTo=${encodeURIComponent(`/orders/${orderId ?? ''}`)}`)
       return
     }
 
     fetchOrder()
-  }, [isAuthenticated, navigate, fetchOrder])
+  }, [isAuthenticated, navigate, fetchOrder, orderId])
 
   if (loading) {
     return (
@@ -62,7 +63,7 @@ function OrderDetailPage() {
   if (error || !order) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-8">
-        <h1 className="mb-6 text-2xl font-bold text-gray-900">Order Details</h1>
+        <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white">Order Details</h1>
         <ErrorMessage message={error ?? 'Order not found.'}>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Button onClick={fetchOrder}>Retry</Button>
@@ -82,7 +83,7 @@ function OrderDetailPage() {
       <div className="mb-6">
         <Link
           to="/orders"
-          className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900"
+          className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
@@ -90,12 +91,12 @@ function OrderDetailPage() {
           Back to Orders
         </Link>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Order #{order.id}</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Order #{order.id}</h1>
           <span className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium capitalize ${STATUS_STYLES[order.status]}`}>
             {order.status}
           </span>
         </div>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Placed on{' '}
           {new Date(order.createdAt).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -109,12 +110,12 @@ function OrderDetailPage() {
 
       <div className="space-y-6">
         {/* Items */}
-        <div className="rounded-lg border border-gray-200 p-6">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Items</h2>
-          <div className="divide-y divide-gray-100">
+        <div className="rounded-lg border border-gray-200 p-6 dark:border-gray-800 dark:bg-gray-900">
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Items</h2>
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {order.items.map((item) => (
               <div key={item.productId} className="flex items-center gap-4 py-3 first:pt-0 last:pb-0">
-                <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
                   <ProductImage
                     src={item.imageUrl}
                     alt={item.name}
@@ -122,58 +123,58 @@ function OrderDetailPage() {
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-900">{item.name}</p>
-                  <p className="text-xs text-gray-500">
-                    Qty: {item.quantity} &times; ${item.price.toFixed(2)}
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{item.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Qty: {item.quantity} &times; {formatCurrency(item.price)}
                   </p>
                 </div>
-                <p className="text-sm font-medium text-gray-900">
-                  ${(item.price * item.quantity).toFixed(2)}
+                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                  {formatCurrency(item.price * item.quantity)}
                 </p>
               </div>
             ))}
           </div>
 
-          <div className="mt-4 space-y-2 border-t border-gray-200 pt-4">
+          <div className="mt-4 space-y-2 border-t border-gray-200 pt-4 dark:border-gray-800">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Subtotal</span>
-              <span className="font-medium">${order.subtotal.toFixed(2)}</span>
+              <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+              <span className="font-medium">{formatCurrency(order.subtotal)}</span>
             </div>
             {order.discountAmount > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-green-600">Discount ({order.discountCode})</span>
-                <span className="font-medium text-green-600">
-                  &minus;${order.discountAmount.toFixed(2)}
+                <span className="text-green-600 dark:text-green-400">Discount ({order.discountCode})</span>
+                <span className="font-medium text-green-600 dark:text-green-400">
+                  &minus;{formatCurrency(order.discountAmount)}
                 </span>
               </div>
             )}
-            <div className="flex justify-between border-t border-gray-200 pt-2">
+            <div className="flex justify-between border-t border-gray-200 pt-2 dark:border-gray-800">
               <span className="font-semibold">Total Paid</span>
-              <span className="text-lg font-bold">${order.total.toFixed(2)}</span>
+              <span className="text-lg font-bold">{formatCurrency(order.total)}</span>
             </div>
           </div>
         </div>
 
         {/* Shipping & Payment */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <div className="rounded-lg border border-gray-200 p-6">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+          <div className="rounded-lg border border-gray-200 p-6 dark:border-gray-800 dark:bg-gray-900">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
               Shipping Address
             </h2>
-            <div className="text-sm text-gray-900">
+            <div className="text-sm text-gray-900 dark:text-white">
               <p className="font-medium">{shipping.fullName}</p>
               <p>{shipping.addressLine1}</p>
               {shipping.addressLine2 && <p>{shipping.addressLine2}</p>}
               <p>{shipping.city}, {shipping.state} {shipping.postalCode}</p>
-              <p className="mt-1 text-gray-600">{shipping.phone}</p>
+              <p className="mt-1 text-gray-600 dark:text-gray-400">{shipping.phone}</p>
             </div>
           </div>
 
-          <div className="rounded-lg border border-gray-200 p-6">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+          <div className="rounded-lg border border-gray-200 p-6 dark:border-gray-800 dark:bg-gray-900">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
               Payment Method
             </h2>
-            <div className="text-sm text-gray-900">
+            <div className="text-sm text-gray-900 dark:text-white">
               <p>{PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}</p>
             </div>
           </div>

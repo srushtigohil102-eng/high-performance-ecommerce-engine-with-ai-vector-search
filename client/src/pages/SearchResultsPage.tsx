@@ -1,14 +1,33 @@
 import { memo, useState, useEffect, useCallback } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import ProductCard from '../components/ProductCard'
-import LoadingSpinner from '../components/LoadingSpinner'
+import ProductGridSkeleton from '../components/ProductGridSkeleton'
 import ErrorMessage from '../components/ErrorMessage'
 import Button from '../components/Button'
 import Pagination from '../components/Pagination'
-import type { Product } from '../types'
+import type { Product, SearchMethod } from '../types'
 import { searchProducts, getProducts } from '../services/productService'
 
 const RESULTS_PER_PAGE = 12
+
+const METHOD_BADGES: Partial<Record<SearchMethod, { label: string; classes: string }>> = {
+  text: {
+    label: 'Full-text match',
+    classes: 'bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-200',
+  },
+  fuzzy: {
+    label: 'Fuzzy match',
+    classes: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200',
+  },
+  regex: {
+    label: 'Partial match',
+    classes: 'bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-200',
+  },
+  vector: {
+    label: 'Semantic match',
+    classes: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200',
+  },
+}
 
 function SearchResultsPage() {
   const [searchParams] = useSearchParams()
@@ -20,11 +39,13 @@ function SearchResultsPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
+  const [searchMethod, setSearchMethod] = useState<SearchMethod | undefined>(undefined)
   const [popularProducts, setPopularProducts] = useState<Product[]>([])
 
   const fetchResults = useCallback(async () => {
     if (!query.trim()) {
       setProducts([])
+      setSearchMethod(undefined)
       setLoading(false)
       return
     }
@@ -39,6 +60,7 @@ function SearchResultsPage() {
       setProducts(result.products)
       setTotalPages(result.totalPages)
       setTotal(result.total)
+      setSearchMethod(result.searchMethod)
     } catch {
       setError('Search failed. Please try again.')
     } finally {
@@ -61,28 +83,35 @@ function SearchResultsPage() {
     fetchResults()
   }, [fetchResults])
 
+  const methodBadge = searchMethod ? METHOD_BADGES[searchMethod] : undefined
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">
             {query.trim() ? (
               <>Showing results for &lsquo;{query.trim()}&rsquo;</>
             ) : (
               'Search Products'
             )}
           </h1>
-          <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-500">
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
             <svg className="h-3.5 w-3.5 text-violet-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
             Full-text search with typo tolerance
+            {methodBadge && (
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${methodBadge.classes}`}>
+                {methodBadge.label}
+              </span>
+            )}
           </p>
         </div>
       </div>
 
       {loading ? (
-        <LoadingSpinner size="lg" message="Searching products..." />
+        <ProductGridSkeleton count={RESULTS_PER_PAGE} />
       ) : error ? (
         <div className="py-8">
           <ErrorMessage message={error}>
@@ -91,13 +120,13 @@ function SearchResultsPage() {
         </div>
       ) : !query.trim() ? (
         <div className="py-12 text-center">
-          <p className="mb-2 text-lg font-medium text-gray-900">Enter a search term</p>
-          <p className="mb-4 text-sm text-gray-500">
+          <p className="mb-2 text-lg font-medium text-gray-900 dark:text-white">Enter a search term</p>
+          <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
             Try describing what you&rsquo;re looking for, e.g. &ldquo;warm winter jacket&rdquo;
           </p>
           <Link
             to="/"
-            className="text-sm font-medium text-gray-900 underline hover:text-gray-600"
+            className="text-sm font-medium text-gray-900 underline hover:text-gray-600 dark:text-white dark:hover:text-gray-300"
           >
             Browse all products
           </Link>
@@ -106,7 +135,7 @@ function SearchResultsPage() {
         <div className="py-12">
           <div className="mb-8 text-center">
             <svg
-              className="mx-auto mb-4 h-12 w-12 text-gray-300"
+              className="mx-auto mb-4 h-12 w-12 text-gray-300 dark:text-gray-600"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
@@ -114,10 +143,10 @@ function SearchResultsPage() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
-            <p className="mb-2 text-lg font-medium text-gray-900">
+            <p className="mb-2 text-lg font-medium text-gray-900 dark:text-white">
               No products found for &lsquo;{query.trim()}&rsquo;
             </p>
-            <p className="mb-6 text-sm text-gray-500">
+            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
               Try rephrasing your search or check out some suggestions below.
             </p>
             <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
@@ -137,7 +166,7 @@ function SearchResultsPage() {
           </div>
 
           <div>
-            <h2 className="mb-4 text-lg font-semibold text-gray-900">Popular Products</h2>
+            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Popular Products</h2>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {popularProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
@@ -147,7 +176,7 @@ function SearchResultsPage() {
         </div>
       ) : (
         <>
-          <p className="mb-4 text-sm text-gray-500">
+          <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
             {total} {total === 1 ? 'result' : 'results'} found
           </p>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

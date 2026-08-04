@@ -6,6 +6,7 @@ import type { Product } from '../types'
 import Button from './Button'
 import ProductImage from './ProductImage'
 import StockBadge from './StockBadge'
+import { formatCurrency } from '../utils/formatCurrency'
 
 interface ProductCardProps {
   product: Product
@@ -42,14 +43,14 @@ function ProductCard({ product }: ProductCardProps) {
 
   return (
     <div
-      className="group cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-white transition-shadow hover:shadow-lg"
+      className="group cursor-pointer overflow-hidden rounded-lg border border-gray-200 bg-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg dark:border-gray-800 dark:bg-gray-900"
       onClick={handleNavigate}
       role="button"
       tabIndex={0}
       aria-label={`View ${product.name}`}
       onKeyDown={handleKeyDown}
     >
-      <div className="aspect-square overflow-hidden bg-gray-100">
+      <div className="aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800">
         <ProductImage
           src={product.imageUrl}
           alt={product.name}
@@ -58,16 +59,16 @@ function ProductCard({ product }: ProductCardProps) {
       </div>
       <div className="flex flex-col gap-2 p-4">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-600">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-600 dark:text-gray-400">
             {product.category}
           </p>
           <StockBadge stock={product.stock} />
         </div>
-        <h2 className="text-sm font-semibold text-gray-900 line-clamp-2">
+        <h2 className="text-sm font-semibold text-gray-900 line-clamp-2 dark:text-gray-100">
           {product.name}
         </h2>
-        <p className="text-lg font-bold text-gray-900">
-          ${product.price.toFixed(2)}
+        <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
+          {formatCurrency(product.price)}
         </p>
         <Button
           onClick={handleAddToCart}

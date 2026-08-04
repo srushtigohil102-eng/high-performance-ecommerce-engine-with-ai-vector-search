@@ -9,11 +9,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    'bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-900',
+    'bg-primary text-white hover:bg-primary-hover focus:ring-primary',
   secondary:
-    'bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-400',
+    'bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-400 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600 dark:focus:ring-gray-500',
   outline:
-    'border border-gray-300 text-gray-900 hover:bg-gray-50 focus:ring-gray-400',
+    'border border-gray-300 text-gray-900 hover:bg-gray-50 focus:ring-gray-400 dark:border-gray-600 dark:text-gray-100 dark:hover:bg-gray-800 dark:focus:ring-gray-500',
 }
 
 export default function Button({

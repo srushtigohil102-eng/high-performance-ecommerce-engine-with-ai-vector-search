@@ -74,7 +74,7 @@ export default function SearchBar({ loading = false, className = '' }: SearchBar
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Search products..."
-        className="w-full rounded-lg border border-gray-300 bg-gray-50 py-3 pl-10 pr-10 text-sm text-gray-900 transition placeholder:text-gray-400 focus:border-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 min-h-[44px]"
+        className="w-full rounded-lg border border-gray-300 bg-gray-50 py-3 pl-10 pr-10 text-sm text-gray-900 transition placeholder:text-gray-400 focus:border-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-gray-900 min-h-[44px] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:border-primary dark:focus:bg-gray-800 dark:focus:ring-primary"
         aria-label="Search products"
       />
       {inputValue && (
