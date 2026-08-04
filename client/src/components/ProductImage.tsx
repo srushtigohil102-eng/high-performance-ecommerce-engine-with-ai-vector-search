@@ -22,7 +22,7 @@ function ProductImage({ src, alt, className = '' }: ProductImageProps) {
   return (
     <div className={`relative overflow-hidden ${className}`}>
       {!loaded && (
-        <div className="absolute inset-0 animate-pulse bg-gray-200" />
+        <div className="absolute inset-0 animate-pulse bg-gray-200 dark:bg-gray-800" />
       )}
       <img
         src={imgSrc}

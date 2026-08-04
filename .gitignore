@@ -1,3 +1,16 @@
+
+node_modules/
+server/node_modules/
+client/node_modules/
+.env
+server/.env
+client/.env
+dist/
+build/
+*.log
+*.err
+.DS_Store
+=======
 # Dependencies
 node_modules/
 package-lock.json
@@ -32,3 +45,4 @@ coverage/
 tmp/
 temp/
 uploads/
+

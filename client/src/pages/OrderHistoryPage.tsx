@@ -2,18 +2,17 @@ import { memo, useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getOrders } from '../services/orderService'
 import { useAuth } from '../hooks/useAuth'
+import { formatCurrency } from '../utils/formatCurrency'
 import Button from '../components/Button'
 import ErrorMessage from '../components/ErrorMessage'
 import LoadingSpinner from '../components/LoadingSpinner'
 import type { Order, OrderStatus } from '../types'
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  confirmed: 'bg-blue-100 text-blue-800',
-  processing: 'bg-blue-100 text-blue-800',
-  shipped: 'bg-purple-100 text-purple-800',
-  delivered: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
+  pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+  confirmed: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+  delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
 }
 
 function OrderHistoryPage() {
@@ -38,7 +37,7 @@ function OrderHistoryPage() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login')
+      navigate('/login?returnTo=/orders')
       return
     }
 
@@ -56,7 +55,7 @@ function OrderHistoryPage() {
   if (error) {
     return (
       <div className="mx-auto max-w-4xl px-4 py-8">
-        <h1 className="mb-6 text-3xl font-bold text-gray-900">My Orders</h1>
+        <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">My Orders</h1>
         <ErrorMessage message={error}>
           <Button onClick={fetchOrders}>Retry</Button>
         </ErrorMessage>
@@ -66,12 +65,12 @@ function OrderHistoryPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="mb-6 text-3xl font-bold text-gray-900">My Orders</h1>
+      <h1 className="mb-6 text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">My Orders</h1>
 
       {orders.length === 0 ? (
-        <div className="rounded-lg border border-gray-200 py-16 text-center">
+        <div className="rounded-lg border border-gray-200 py-16 text-center dark:border-gray-800">
           <svg
-            className="mx-auto mb-4 h-12 w-12 text-gray-300"
+            className="mx-auto mb-4 h-12 w-12 text-gray-300 dark:text-gray-600"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1.5}
@@ -83,8 +82,8 @@ function OrderHistoryPage() {
               d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
             />
           </svg>
-          <p className="mb-2 text-lg font-medium text-gray-900">You haven&apos;t placed any orders yet</p>
-          <p className="mb-6 text-sm text-gray-500">
+          <p className="mb-2 text-lg font-medium text-gray-900 dark:text-white">You haven&apos;t placed any orders yet</p>
+          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
             Start shopping and your orders will appear here.
           </p>
           <Link to="/">
@@ -97,17 +96,17 @@ function OrderHistoryPage() {
             <Link
               key={order.id}
               to={`/orders/${order.id}`}
-              className="block rounded-lg border border-gray-200 bg-white p-4 transition hover:border-gray-300 hover:shadow-sm sm:p-6"
+              className="block rounded-lg border border-gray-200 bg-white p-4 transition hover:border-gray-300 hover:shadow-sm sm:p-6 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-600"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <div className="flex items-center gap-3">
-                    <p className="font-mono font-bold text-gray-900">#{order.id}</p>
+                    <p className="font-mono font-bold text-gray-900 dark:text-white">#{order.id}</p>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[order.status]}`}>
                       {order.status}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     {new Date(order.createdAt).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'long',
@@ -118,7 +117,7 @@ function OrderHistoryPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <p className="text-lg font-bold text-gray-900">${order.total.toFixed(2)}</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(order.total)}</p>
                   <svg
                     className="h-5 w-5 text-gray-400"
                     fill="none"

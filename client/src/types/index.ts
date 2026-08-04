@@ -42,6 +42,12 @@ export interface PaginatedResponse {
   totalPages: number
 }
 
+export type SearchMethod = 'text' | 'fuzzy' | 'regex' | 'vector' | 'none'
+
+export interface SearchResponse extends PaginatedResponse {
+  searchMethod?: SearchMethod
+}
+
 export interface ProductQueryParams {
   page?: number
   limit?: number
@@ -53,6 +59,7 @@ export interface DiscountCode {
   code: string
   discountAmount: number
   description: string
+  percentage?: number
 }
 
 export interface CartSummary {
@@ -72,9 +79,18 @@ export interface ShippingAddress {
   phone: string
 }
 
+// Backend shipping address shape (what the API actually stores/returns)
+export interface BackendShippingAddress {
+  street: string
+  city: string
+  state: string
+  zipCode: string
+  country: string
+}
+
 export type PaymentMethod = 'cod' | 'mock_card'
 
-export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+export type OrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered'
 
 export interface OrderItem {
   productId: string
@@ -102,4 +118,22 @@ export interface PlaceOrderPayload {
   shippingAddress: ShippingAddress
   paymentMethod: PaymentMethod
   discountCode?: string
+}
+
+export interface AdminOrder extends Order {
+  customerName: string
+  customerEmail: string
+}
+
+export interface AdminDashboardStats {
+  totalProducts: number
+  totalOrders: number
+  lowStockProducts: number
+  totalRevenue: number
+}
+
+export interface AdminOrderQueryParams {
+  status?: OrderStatus | ''
+  page?: number
+  limit?: number
 }

@@ -1,127 +1,105 @@
-# Mid Review Demo Script
+# Final Review Demo Script
 
-**Duration:** ~5 minutes
-**Prerequisites:** `npm run dev` running in `client/` (dev mode uses mock data fallback when no backend)
+**Duration:** ~6 minutes
+**Prerequisites:** `npm run dev` running in `client/` **and** the API server running on `http://localhost:5000` (seeded database with 73 products). Re-run `npm run seed` in `server/` right before the demo for a clean state (0 orders, full stock).
 
 ---
 
 ## Demo Flow
 
-### 1. Home Page — Product Browsing (30s)
+### 1. Home — Browse, Filter, Pagination (40s)
 - Open `http://localhost:5173/`
-- Point out the product grid with 12 mock products
-- Show responsive layout (resize browser to show 1-col mobile → 4-col desktop)
-- **Mobile check:** Open DevTools device toolbar, show hamburger nav works
+- Point out the product grid with **73 seeded products**
+- Show pagination: click page 2 and page 1 (13 pages at 12/page)
+- **Category filter:** select "Electronics" → grid filters, "X products found" count updates; switch back to "All Categories"
+- **What to say (caching):** *"The product list endpoint is served through a Redis cache with a 5-minute TTL. When an admin creates or edits a product, we invalidate the cached keys immediately, so the public storefront never shows stale data."*
 
-### 2. Category Filter (20s)
-- Click the "All Categories" dropdown
-- Select "Electronics" — grid filters to electronics only
-- Show results count updates ("X products found")
-- Switch back to "All Categories"
+### 2. Search — 3 Queries (45s)
+Type these in the navbar search bar and hit Enter (or press the search button):
+- **`wireless headphones`** → *"This is MongoDB full-text search using a weighted text index — name matches score 10x, descriptions 5x, categories 3x. Headphones rank above unrelated items."*
+- **`headphonse`** (typo) → *"The typo-tolerant fallback kicks in: Levenshtein distance finds Wireless Bluetooth Headphones within 2 edits. Notice the 'fuzzy' badge on the results page."*
+- **`electro`** (partial) → *"No product name contains 'electro', so the regex partial-match fallback surfaces the Electronics category. The badge shows 'regex'."*
+- Mention: every query returns the `searchMethod` field (`text` / `fuzzy` / `regex`) and empty or malformed queries never crash — they just return an empty list.
 
-### 3. Search (20s)
-- Type "wireless" in the search bar
-- Show debounce behavior (300ms delay, no excessive API calls)
-- Show filtered results
-- Clear search → all products return
+### 3. Product Detail (30s)
+- Click the **Wireless Bluetooth Headphones** card
+- Show image, name, price, description, category, and the **stock badge** (In Stock / Low Stock / Out of Stock)
+- Use the quantity selector; note the + button disables at the stock limit
 
-### 4. Empty State (15s)
-- Search for "xyznonexistent" — show "No products found" message
-- Show "Clear all filters" button appears
-- Click it → products return
+### 4. Add to Cart (20s)
+- Add quantity 2 of the headphones → toast "Product added to cart!"
+- Add a second product (e.g. "Dark Chocolate 85%")
 
-### 5. Product Detail (30s)
-- Click any product card
-- Show product image, name, price, description, category, stock badge
-- Demonstrate quantity selector (+ / - buttons)
-- Show stock limit: if product has stock=5, the + button disables at 5
-- Point out "Out of Stock" state on low-stock items
+### 5. Cart + Discount Code (40s)
+- Open the cart
+- Increase one item's quantity → subtotal recalculates
+- Enter code **`SAVE10`** → *"The discount code is validated server-side against the discount codes collection, then the backend applies the percentage to the order total. You can't just fake it in the browser — the total comes from the API."*
+- Show discount line and updated total
 
-### 6. Add to Cart (20s)
-- Click "Add to Cart" on a product
-- Show toast notification appears ("Product added to cart!")
-- Cart badge in navbar updates with count
-- Add a second product
+### 6. Login + Checkout (45s)
+- Click **Login** — show validation on an empty submit
+- Sign in with **`customer@example.com` / `customer123`** (or register a new account)
+- Complete checkout: shipping address form + "Cash on Delivery"
+- Place order → **Order Confirmation** page with order ID and totals
+- **What to say (inventory):** *"Checkout is atomic — the server decrements stock inside the same transaction that creates the order, so stock and orders can't drift out of sync. If stock were insufficient, the order is rejected with a 400 and the cart is preserved."*
 
-### 7. Cart Page (30s)
-- Click "Cart" in navbar
-- Show both items with images, prices, quantities
-- Increase quantity of one item → subtotal updates
-- Remove an item → it disappears, subtotal updates
-- Show empty cart state: "Your cart is empty" with "Browse Products" link
-- Note: "Checkout coming soon — Week 3"
+### 7. Order History + Detail + Logout (30s)
+- Open **My Orders** → the new order is listed with status "pending"
+- Open the order detail → line items, pricing breakdown, shipping address
+- Click **Logout** → back to home; cart badge/context is reset
 
-### 8. Login (40s)
-- Click "Login" in navbar
-- Show form validation: submit empty → errors appear
-- Enter test credentials (email + password, min 8 chars)
-- On successful login: toast "Login successful"
-- If admin: navbar now shows "Admin" link and "Logout" replaces "Login"
-- If customer: redirected to Home
+### 8. Admin — Login, Product CRUD (50s)
+- Log in as **`admin@example.com` / `admin123`** → navbar shows "Admin"
+- **RBAC demo:** log out, try `http://localhost:5173/admin` directly → redirected to login
+- Log back in as admin → **Admin Dashboard**
+- Create a product (e.g. "Demo Gadget", price 29.99, Electronics) → appears in the table with a toast
+- Edit its price → table refreshes
+- Search for "Demo Gadget" on the public storefront → *"the product is immediately searchable, and the cache was invalidated on create."*
 
-### 9. Admin Dashboard (40s)
-- Click "Admin" in navbar (only visible when logged in as admin)
-- **Security demo:** Log out, try navigating directly to `/admin` → redirected to `/login`
-- Log in as non-admin → navigate to `/admin` → redirected to Home
-- Log in as admin → access Admin Dashboard
-- Show product table with Name, Price, Category, Stock, Actions
+### 9. Admin — Order Management (30s)
+- Open **Orders** tab → the customer's order is listed
+- Change status to **"shipped"** → status badge updates
+- Show **Stats** tab → totals, low-stock products, revenue
 
-### 10. Admin CRUD (40s)
-- Click "+ Add Product" → modal form opens
-- Fill in Name, Price, Category (required fields)
-- Submit → product appears in table, toast "Product added successfully"
-- Click "Edit" on the new product → pre-filled form
-- Change name → Update → table refreshes
-- Click "Delete" → confirmation dialog → Delete → product removed
-- Click "Refresh" button → products reload
+### 10. Public Pages Reflect Changes (20s)
+- Return to the storefront (log out first)
+- Search "Demo Gadget" → still findable (verify delete later if time)
+- Check the product detail page shows the updated stock after the admin edit
 
-### 11. Error Handling (20s)
-- Show the error boundary by noting it exists (don't force a crash)
-- Mention: 401 interceptor auto-logs out and redirects to `/login?session=expired`
-- Show the "session expired" banner on the login page
-
-### 12. Responsive Design (20s)
-- Resize browser from desktop (3-4 columns) to tablet (2 columns) to mobile (1 column)
-- Show mobile hamburger menu opens/closes
-- Show admin table is horizontally scrollable on small screens
+### 11. Responsive + Error Handling (20s)
+- Resize the browser: 4-col desktop → 2-col tablet → 1-col mobile; hamburger nav works
+- Mention the 401 interceptor: an expired session auto-redirects to `/login?session=expired` with a banner
 
 ---
 
 ## Key Talking Points
 
-### Architecture
-- **Frontend:** React 19 + TypeScript + Vite 8 + Tailwind CSS v4
-- **State:** React Context (Auth, Cart, Toast) — no external state library needed at this scale
-- **Routing:** React Router v7 with nested routes and layout pattern
-- **HTTP:** Axios with JWT interceptor, automatic token management
+### Search (what to say)
+- **Primary path:** MongoDB `$text` with a weighted index (`product_text_search`: name 10x, description 5x, category 3x)
+- **Fallbacks:** Levenshtein typo matching (≤2 edits) then regex partial match (including category names)
+- **Honesty:** this is full-text search with typo tolerance, *not* AI vector search. A semantic `$vectorSearch` + OpenAI path is scaffolded but needs an Atlas index + API key — the demo uses the zero-setup path that works on any MongoDB instance.
 
-### What's Working (Week 2 Complete)
-- Full product browsing with filter, search, pagination
-- Product detail with stock-aware quantity selector
-- Shopping cart with optimistic updates and backend sync readiness
-- Admin CRUD dashboard with form validation
-- Auth flow with JWT parsing, role detection, session expiry handling
-- Route protection (role-based: admin vs customer)
-- Responsive design (mobile-first)
-- Error boundaries and graceful error states
-- Toast notification system
-- Loading states with descriptive messages
-- Empty states with actionable CTAs
+### Caching
+- Redis caches product list + search responses for 5 minutes
+- Writes (product create/update/delete, order placement) invalidate the affected cache keys immediately
+- If Redis is down, the server logs "running without cache" and continues — caching never blocks a request
 
-### Blocked by Backend (Flag to Backend Team)
-- Redis caching (no backend server yet)
-- Cache invalidation (no backend)
-- AI vector search endpoint `/api/search` (planned Week 3)
-- Server-side RBAC enforcement (route guard is frontend-only)
-- Checkout/payment flow
-- Real database persistence
+### Inventory
+- Stock is the source of truth in MongoDB; checkout validates and decrements in one atomic operation
+- The UI enforces the same limits (quantity selector capped at stock, checkout blocked on out-of-stock)
+
+### Discount logic
+- Codes are validated server-side by percentage against the `discountcodes` collection
+- The order total, subtotal, and discount are computed by the backend — the frontend only displays what the API returns
 
 ---
 
 ## Pre-Demo Checklist
 
-- [ ] `npm run dev` is running in `client/`
-- [ ] Browser is clean (no devtools open initially)
-- [ ] Test admin account exists (or use mock flow)
-- [ ] Network tab visible for one quick reveal (show mock fallback in dev)
-- [ ] DevTools device toolbar ready for mobile demo
+- [ ] `npm run seed` run in `server/` (clean state: 73 products, 0 orders, full stock)
+- [ ] `npm run dev` running in `client/`
+- [ ] Server running on `http://localhost:5000` (`GET /api/health` → `{ status: "ok" }`)
+- [ ] Browser window clean, sized for desktop first
+- [ ] Test credentials at hand: admin `admin@example.com` / `admin123`, customer `customer@example.com` / `customer123`
+- [ ] Discount code noted: `SAVE10`
+- [ ] DevTools device toolbar ready for the mobile/responsive step

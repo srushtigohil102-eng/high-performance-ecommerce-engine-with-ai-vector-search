@@ -28,14 +28,14 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
         variant="outline"
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
-        className="px-3 py-2 text-xs"
+        className="px-3 py-2 text-xs min-h-[44px]"
       >
         Previous
       </Button>
 
       {pages.map((p, i) =>
         p === '...' ? (
-          <span key={`ellipsis-${i}`} className="px-2 text-sm text-gray-400">
+          <span key={`ellipsis-${i}`} className="px-1 text-sm text-gray-400 sm:px-2">
             ...
           </span>
         ) : (
@@ -44,10 +44,10 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
             type="button"
             onClick={() => onPageChange(p)}
             aria-current={p === page ? 'page' : undefined}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+            className={`min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium transition ${
               p === page
-                ? 'bg-gray-900 text-white'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
             }`}
           >
             {p}
@@ -59,7 +59,7 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
         variant="outline"
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
-        className="px-3 py-2 text-xs"
+        className="px-3 py-2 text-xs min-h-[44px]"
       >
         Next
       </Button>

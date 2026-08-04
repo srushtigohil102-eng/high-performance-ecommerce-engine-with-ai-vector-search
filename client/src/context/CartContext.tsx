@@ -47,7 +47,10 @@ interface CartProviderProps {
 
 function computeClientSummary(items: CartItem[], discount: DiscountCode | null): CartSummary {
   const subtotal = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
-  const discountAmount = discount?.discountAmount ?? 0
+  // Compute discount from percentage if available, otherwise use fixed amount
+  const discountAmount = discount?.percentage
+    ? Math.round((subtotal * discount.percentage) / 100 * 100) / 100
+    : discount?.discountAmount ?? 0
   return {
     subtotal,
     discountAmount,

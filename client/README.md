@@ -1,8 +1,8 @@
 # E-Commerce Frontend — Client
 
-React-based e-commerce frontend with AI-powered vector search, built as part of a high-performance e-commerce engine.
+React-based e-commerce frontend with full-text product search (MongoDB `$text` with typo-tolerant fallbacks), built as part of a high-performance e-commerce engine.
 
-> **Weeks 1-3 Complete** — Full purchase journey built and stabilized: search, browse, cart, checkout, and order history. Ready for final review.
+> **Weeks 1-4 Complete** — Full purchase journey built and stabilized: register, search, browse, cart, discount codes, checkout, order history, and admin product/order management. Ready for final review.
 
 ---
 
@@ -15,7 +15,7 @@ cp .env.example .env        # set VITE_API_URL=http://localhost:5000/api
 npm run dev                  # opens at http://localhost:5173
 ```
 
-**Backend dependency:** The frontend connects to an Express/MongoDB backend on `http://localhost:5000`. Without it, product listing/detail pages fall back to 12 mock products. Cart, auth, checkout, orders, and search require the backend to be running.
+**Backend dependency:** The frontend connects to an Express/MongoDB backend on `http://localhost:5000`. Product data, auth, search, discount validation, and order placement all come from the backend. Without it the app cannot function — there is no mock-data fallback.
 
 ### Available Scripts
 
@@ -57,9 +57,9 @@ npm run dev                  # opens at http://localhost:5173
 - Empty state with "Clear all filters" action when no results found
 - Results count display ("X products found")
 
-### AI Semantic Search (`/search`)
-- Full-page search results via `GET /search?q=<query>` (vector/embedding-powered)
-- "AI-powered semantic search" badge on results page
+### Search (`/search`)
+- Full-page search results via `GET /search?q=<query>` (MongoDB full-text search + typo-tolerant fallbacks)
+- Search method badge on results page (text / fuzzy / regex)
 - Empty query state with example suggestions
 - Zero-results state with category quick-links and popular products
 - Pagination for search results
@@ -79,10 +79,9 @@ npm run dev                  # opens at http://localhost:5173
 - Remove item button per cart entry
 - Subtotal calculation (price x quantity per item, summed)
 - Empty cart state with "Browse Products" link
-- Backend sync: optimistic UI updates with rollback on API failure
-- Cart merge on login (local + remote, takes higher quantity per product)
+- Cart is frontend-local (React context) — there is no server-side cart; checkout sends the item list directly to the order API
 - Per-item loading overlay during quantity updates
-- Discount code input with apply/remove functionality (backend-integrated)
+- Discount code input with apply/remove functionality (backend-integrated via `POST /api/orders/discount/validate`)
 - Checkout blocking when items are out of stock or over stock limit
 
 ### Checkout Flow (`/checkout`)
@@ -103,8 +102,9 @@ npm run dev                  # opens at http://localhost:5173
 - Loading, error (with retry), and empty states on all order pages
 - Status badges color-coded: pending (yellow), confirmed/processing (blue), shipped (purple), delivered (green), cancelled (red)
 
-### Authentication (`/login`)
-- JWT-based login via `POST /auth/login`
+### Authentication (`/login`, `/register`)
+- JWT-based login via `POST /auth/login` and registration via `POST /auth/register`
+- Registration page with name/email/password/confirm-password validation; successful sign-up auto-signs-in
 - Client-side form validation (email format, password min 8 chars)
 - Error display with dismiss button
 - Session expired banner (shown after 401 redirect)
@@ -122,7 +122,7 @@ npm run dev                  # opens at http://localhost:5173
 - Form validation with error messages on required fields
 - Refresh button to reload product list
 - Toast notifications for all CRUD operations
-- Security warning banner about pending backend RBAC enforcement
+- Admin routes are guarded server-side by `authMiddleware` + `adminMiddleware` (RBAC enforced on the API, not just the UI)
 
 ### Cross-Cutting
 - Toast notification system (success/error/info) with auto-dismiss
@@ -140,18 +140,17 @@ npm run dev                  # opens at http://localhost:5173
 src/
 ├── components/       15 reusable UI components
 ├── context/          3 React context providers (Cart, Auth, Toast)
-├── data/             Mock data fallback (mockProducts.ts, mockOrders.ts)
 ├── hooks/            4 custom hooks (useCart, useAuth, useToast, useDebounce)
-├── pages/            11 route-level page components
+├── pages/            12 route-level page components
 ├── services/         API client + auth/product/cart/order services (6 files)
 └── types/            Shared TypeScript interfaces
 ```
 
 **Provider nesting:** `BrowserRouter` -> `AuthProvider` -> `ToastProvider` -> `CartProvider` -> `Routes`
 
-**Service layer:** Pages call `productService`, `authService`, `cartService`, `orderService` which use `apiClient` (Axios with JWT interceptor). If the backend is unavailable, product services fall back to mock data.
+**Service layer:** Pages call `productService`, `authService`, `cartService`, `orderService`, `adminService` which use `apiClient` (Axios with JWT interceptor). All data comes from the backend API.
 
-**Cart sync:** Optimistic UI (instant feedback) + async backend sync. On failure, rolls back to previous state and shows a toast notification. On login, fetches remote cart and merges with local cart.
+**Cart:** Managed entirely in frontend React state (CartContext). There is no server-side cart API — cartService exposes no-op sync stubs and the cart is NOT persisted across page refreshes. Discount validation is the one cart feature that hits the real backend.
 
 **Auth flow:** JWT stored in localStorage, decoded client-side for user info. Axios interceptor catches 401 responses globally and redirects to `/login?session=expired`. Checkout requires authentication with `?returnTo=` URL preservation.
 
@@ -166,48 +165,67 @@ src/
 | POST | `/api/products` | Create product (admin) |
 | PUT | `/api/products/:id` | Update product (admin) |
 | DELETE | `/api/products/:id` | Delete product (admin) |
-| GET | `/api/search` | AI semantic search (`?q`, `?page`, `?limit`) |
-| POST | `/api/auth/login` | Login — returns `{ token, user }` |
-| POST | `/api/auth/register` | Register — returns `{ token, user }` |
-| GET | `/api/cart` | Get user's cart |
-| POST | `/api/cart` | Sync full cart |
-| PUT | `/api/cart/:productId` | Update cart item quantity |
-| DELETE | `/api/cart/:productId` | Remove cart item |
-| POST | `/api/cart/discount` | Apply discount code |
-| DELETE | `/api/cart/discount` | Remove discount code |
-| GET | `/api/cart/summary` | Get cart summary |
-| POST | `/api/orders` | Place order |
-| GET | `/api/orders` | Get user's order history |
-| GET | `/api/orders/:orderId` | Get single order detail |
+| GET | `/api/search` | Search (`?q`, `?page`, `?limit`) — text + typo-tolerant fallbacks |
+| POST | `/api/auth/register` | Register — returns `{ token, id, name, email, role }` |
+| POST | `/api/auth/login` | Login — returns `{ token, id, name, email, role }` |
+| POST | `/api/orders` | Place order (auth) |
+| GET | `/api/orders` | Get user's order history (auth) |
+| GET | `/api/orders/:orderId` | Get single order detail (auth) |
+| POST | `/api/orders/discount/validate` | Validate a discount code (auth) |
+| GET | `/api/admin/orders` | All orders, optional `?status=` filter (admin) |
+| GET | `/api/admin/orders/:orderId` | Single order detail (admin) |
+| PATCH | `/api/admin/orders/:orderId/status` | Update order status (admin) |
+| GET | `/api/admin/stats` | Dashboard statistics (admin) |
+
+> Note: there is no server-side cart API. The cart lives in frontend state only; the discount validation and order placement endpoints above are the cart's backend touchpoints.
 
 ---
 
-## Known Issues
+## Known Limitations
 
-1. **RBAC enforcement pending** — Backend role-based access control is not enforced server-side. The admin UI route guard is frontend-only. Any authenticated user could hit admin endpoints directly.
-2. **Cart cleared on logout** — Local cart state resets on logout. Remote cart persists on the backend; re-login merges automatically.
-3. **401 redirect uses full page reload** — The Axios interceptor redirects via `window.location.href`, which loses React state. Acceptable for current scope.
-4. **Product images** — Using placeholder images from placehold.co. Real CDN/storage images planned for Week 4.
-5. **No registration page** — `authService.register()` is defined but no UI page exists for user registration.
-6. **Guest checkout not supported** — Checkout requires authentication. Guest checkout is out of scope for current version.
+1. **Cart is not persisted across page refreshes** — The cart lives entirely in frontend React state (CartContext). There is no server-side cart API, so refreshing the browser clears the cart. This is a deliberate scoping decision: checkout sends the item list directly to the order API.
+2. **Guest checkout not supported** — Placing an order requires a logged-in account. Guest checkout is out of scope for the current version.
+3. **Payment is mock only** — Only "Cash on Delivery" and a fake "Mock Card" option are offered. No real payment gateway or card processing is integrated.
+4. **Product images are placeholders** — Seed products use picsum.photos placeholder URLs, which depend on an external service being reachable.
+5. **401 redirect does a full page reload** — The Axios interceptor redirects via `window.location.href`, which loses React state. Acceptable for the current scope.
+6. **Single-developer scope** — This frontend was built solo, covering the scope of a three-person team's client work (see the server README for the backend's equivalent note). Some areas favor breadth over depth. See *Team & Contribution Transparency* below for the full picture.
 
 ---
 
-## Semantic Search — Demo Queries
+## Team & Contribution Transparency
 
-These queries showcase the AI vector search working well beyond plain text matching:
+This project was scoped as a **three-person team**: a frontend developer, a backend developer, and an AI/search engineer. During Weeks 1-4 the assigned team members were inactive, so **all frontend, backend, and AI/search work in this repository was completed by one author** (the repository's author), covering all three roles' scope.
 
-| Query | Expected Semantic Result |
-|-------|--------------------------|
-| "warm winter jacket" | Clothing/outerwear items, even if "jacket" isn't in the product name |
-| "something to listen to music" | Headphones/earbuds without requiring the keyword "headphone" |
-| "gift for a tech lover" | Electronics accessories and gadgets |
+What that means concretely:
+
+| Intended role | Scope covered by the author |
+|---------------|-----------------------------|
+| Frontend developer | This entire `client/` — React 19 app, all pages, routing, state, styling, responsive design |
+| Backend developer | Entire `server/` — Express API, MongoDB models, JWT auth, RBAC, Redis caching, Docker setup |
+| AI/search engineer | `GET /api/search` — MongoDB `$text` weighted search + Levenshtein/regex typo fallbacks + scaffolded vector-search path |
+
+This is documented openly rather than hidden: the code, tests, and bug-fix history (`INTEGRATION_TEST_BUGS.md`) are all attributable to a single contributor, and the scope was delivered in full across Weeks 1-4.
+
+---
+
+## Search — Demo Queries
+
+These queries showcase the search engine's relevance ranking and typo tolerance (MongoDB `$text` weighted scoring with Levenshtein + regex fallbacks):
+
+| Query | Expected Result |
+|-------|-----------------|
+| "wireless headphones" | Ranked electronics results (headphones before unrelated items) |
+| "headphonse" (typo) | Headphones via typo-tolerant fuzzy fallback |
+| "chocolate" | Grocery item(s) containing chocolate |
+| "electro" (partial) | Electronics items via regex partial-match fallback |
+
+> True semantic vector search (Atlas `$vectorSearch` + OpenAI embeddings) is scaffolded on the server but requires an embedding provider and an Atlas vector index. The shipping search path above works on any MongoDB instance with zero external setup — this is what the demo uses.
 
 ---
 
 ## Demo Script
 
-A structured 5-minute demo walkthrough is available in [`DEMO_SCRIPT.md`](../DEMO_SCRIPT.md), covering all features with talking points and a pre-demo checklist.
+A structured step-by-step demo walkthrough is available in [`DEMO_SCRIPT.md`](../DEMO_SCRIPT.md), covering the full purchase journey with search examples, talking points, and a pre-demo checklist.
 
 ---
 
@@ -215,10 +233,12 @@ A structured 5-minute demo walkthrough is available in [`DEMO_SCRIPT.md`](../DEM
 
 | Area | Target | Status |
 |------|--------|--------|
-| Admin dashboard | UI polish, improved forms, responsive layout | Pending |
-| Product images | Real images from CDN/storage (replace placehold.co) | Pending |
-| User registration | Registration page with form validation | Pending |
+| Admin dashboard | UI polish, improved forms, responsive layout | Done |
+| User registration | Registration page with form validation | Done |
+| RBAC enforcement | Server-side role-based access control | Done |
+| Final integration | Cross-team end-to-end testing with backend | Done — full E2E passing |
+| Product images | Real images from CDN/storage (replace placeholder URLs) | Pending |
+| Cart persistence | Server-side cart or localStorage persistence | Pending |
+| Real payments | Payment gateway integration (currently mock) | Pending |
 | Responsive polish | Mobile/tablet refinements across all pages | Pending |
-| RBAC enforcement | Server-side role-based access control | Pending |
 | Deployment | Production build optimization, deployment prep | Pending |
-| Final integration | Cross-team end-to-end testing with backend | Pending |

@@ -14,6 +14,13 @@ interface RawAuthResponse {
   token?: string
   access_token?: string
   jwt?: string
+  // Backend returns flat: { _id, name, email, role, token }
+  // Also handle nested: { user: { id, name, ... }, token }
+  _id?: string
+  id?: string
+  name?: string
+  email?: string
+  role?: string
   user?: {
     id?: string
     _id?: string
@@ -31,7 +38,15 @@ interface RegisterPayload {
 
 function normalizeAuthResponse(data: RawAuthResponse): AuthResponse {
   const token = data.token ?? data.access_token ?? data.jwt ?? ''
+
+  // Backend returns user fields at top level (_id, name, email, role)
+  // Also handle nested { user: { ... } } shape as fallback
   const rawUser = data.user ?? {}
+
+  const id = rawUser.id ?? rawUser._id ?? data._id ?? data.id ?? ''
+  const name = rawUser.name ?? data.name ?? ''
+  const email = rawUser.email ?? data.email ?? ''
+  const role = (rawUser.role ?? data.role ?? 'customer') as 'admin' | 'customer'
 
   if (import.meta.env.DEV && !token) {
     console.warn('[authService] Auth response missing token, response shape may have changed:', data)
@@ -39,12 +54,7 @@ function normalizeAuthResponse(data: RawAuthResponse): AuthResponse {
 
   return {
     token,
-    user: {
-      id: rawUser.id ?? rawUser._id ?? '',
-      name: rawUser.name ?? '',
-      email: rawUser.email ?? '',
-      role: (rawUser.role as 'admin' | 'customer') ?? 'customer',
-    },
+    user: { id, name, email, role },
   }
 }
 
