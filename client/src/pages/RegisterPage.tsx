@@ -85,16 +85,16 @@ export default function RegisterPage() {
   return (
     <div className="mx-auto flex min-h-[60vh] max-w-md items-center justify-center px-4">
       <div className="w-full">
-        <h1 className="mb-6 text-center text-3xl font-bold text-gray-900">
+        <h1 className="mb-6 text-center text-3xl font-bold text-gray-900 dark:text-white">
           Create Account
         </h1>
         {authError && (
-          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert">
+          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-200" role="alert">
             {authError}
             <button
               type="button"
               onClick={clearError}
-              className="ml-2 font-semibold underline hover:text-red-900"
+              className="ml-2 font-semibold underline hover:text-red-900 dark:hover:text-red-100"
             >
               Dismiss
             </button>
@@ -145,9 +145,9 @@ export default function RegisterPage() {
             {submitting ? 'Creating Account...' : 'Create Account'}
           </Button>
         </form>
-        <p className="mt-4 text-center text-sm text-gray-600">
+        <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
           Already have an account?{' '}
-          <Link to="/login" className="font-semibold text-gray-900 underline hover:text-gray-700">
+          <Link to="/login" className="font-semibold text-gray-900 underline hover:text-gray-700 dark:text-white dark:hover:text-gray-300">
             Sign in
           </Link>
         </p>
