@@ -1,0 +1,244 @@
+# E-Commerce Frontend — Client
+
+React-based e-commerce frontend with full-text product search (MongoDB `$text` with typo-tolerant fallbacks), built as part of a high-performance e-commerce engine.
+
+> **Weeks 1-4 Complete** — Full purchase journey built and stabilized: register, search, browse, cart, discount codes, checkout, order history, and admin product/order management. Ready for final review.
+
+---
+
+## Quick Start
+
+```bash
+cd client
+npm install
+cp .env.example .env        # set VITE_API_URL=http://localhost:5000/api
+npm run dev                  # opens at http://localhost:5173
+```
+
+**Backend dependency:** The frontend connects to an Express/MongoDB backend on `http://localhost:5000`. Product data, auth, search, discount validation, and order placement all come from the backend. Without it the app cannot function — there is no mock-data fallback.
+
+### Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Vite dev server with HMR |
+| `npm run build` | TypeScript check + production build |
+| `npm run lint` | oxlint — zero warnings |
+| `npm run preview` | Preview production build |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| UI | React 19, TypeScript 6 (strict mode) |
+| Build | Vite 8 |
+| Styling | Tailwind CSS v4 |
+| Routing | React Router v7 (nested routes) |
+| State | React Context API (Auth, Cart, Toast) |
+| HTTP | Axios with JWT interceptor |
+| Linting | oxlint (Rust-based) |
+
+---
+
+## Weeks 1-3 — Complete Feature Summary
+
+### Core UI & Layout
+- Responsive layout with Navbar (hamburger on mobile), Footer, and content outlet
+- Mobile-first design across all pages (1-col to 2-col to 3/4-col grid)
+- Keyboard navigation and ARIA attributes on interactive elements
+- Error boundary at app root with fallback UI
+
+### Home Page (`/`)
+- Product grid with responsive columns (1/2/3/4 based on screen width)
+- Category filter dropdown populated from backend product data
+- Smart pagination with ellipsis for large page counts
+- Empty state with "Clear all filters" action when no results found
+- Results count display ("X products found")
+
+### Search (`/search`)
+- Full-page search results via `GET /search?q=<query>` (MongoDB full-text search + typo-tolerant fallbacks)
+- Search method badge on results page (text / fuzzy / regex)
+- Empty query state with example suggestions
+- Zero-results state with category quick-links and popular products
+- Pagination for search results
+- Retry button on search errors
+
+### Product Detail (`/product/:id`)
+- Full product page with image, name, price, description, category
+- Stock badge (In Stock / Low Stock / Out of Stock) with color coding
+- Quantity selector with stock-aware limits (disables + at max stock)
+- Add to cart button with toast notification
+- Loading spinner and error/retry state
+- "Product Not Found" state for invalid IDs
+
+### Shopping Cart (`/cart`)
+- Cart item list with images, names, prices, quantities
+- Quantity increase/decrease with stock limit enforcement
+- Remove item button per cart entry
+- Subtotal calculation (price x quantity per item, summed)
+- Empty cart state with "Browse Products" link
+- Cart is frontend-local (React context) — there is no server-side cart; checkout sends the item list directly to the order API
+- Per-item loading overlay during quantity updates
+- Discount code input with apply/remove functionality (backend-integrated via `POST /api/orders/discount/validate`)
+- Checkout blocking when items are out of stock or over stock limit
+
+### Checkout Flow (`/checkout`)
+- Shipping address form with client-side validation (name, address, city, state, postal code, phone)
+- US postal code format validation (`12345` or `12345-6789`)
+- Payment method selection: Cash on Delivery or Mock Card
+- Order summary sidebar with line items, subtotal, discount, total
+- Auth guard: requires login to complete checkout (with return-to URL preservation)
+- Submit button with loading spinner during order placement
+- Error banner with server message on order failure (cart preserved for retry)
+- Checkout blocked when cart items are out of stock
+
+### Order Management
+- **Order Confirmation** (`/order-confirmation/:orderId`): Success header with checkmark, order details, items, pricing, shipping, payment info
+- **Order History** (`/orders`): List of all orders with status badges, dates, item counts, totals; empty state with "Start Shopping" CTA
+- **Order Detail** (`/orders/:orderId`): Full order view with items, pricing breakdown (subtotal, discount, total), shipping address, payment method
+- Auth-protected: redirects to login if not authenticated
+- Loading, error (with retry), and empty states on all order pages
+- Status badges color-coded: pending (yellow), confirmed/processing (blue), shipped (purple), delivered (green), cancelled (red)
+
+### Authentication (`/login`, `/register`)
+- JWT-based login via `POST /auth/login` and registration via `POST /auth/register`
+- Registration page with name/email/password/confirm-password validation; successful sign-up auto-signs-in
+- Client-side form validation (email format, password min 8 chars)
+- Error display with dismiss button
+- Session expired banner (shown after 401 redirect)
+- Return-to URL support (`?returnTo=/checkout`) for post-login redirect
+- Redirect to admin dashboard for admin users, home for customers
+- Token persistence in localStorage with auto-clear on logout
+- Auto-parse JWT for user info (id, name, email, role)
+
+### Admin Dashboard (`/admin`)
+- Protected route — requires authenticated admin role
+- Product table: Name, Price, Category, Stock, Actions
+- **Create**: Modal form with name, price, category (required), stock, image URL, description
+- **Edit**: Pre-filled modal form, updates product via `PUT /products/:id`
+- **Delete**: Confirmation dialog before deletion via `DELETE /products/:id`
+- Form validation with error messages on required fields
+- Refresh button to reload product list
+- Toast notifications for all CRUD operations
+- Admin routes are guarded server-side by `authMiddleware` + `adminMiddleware` (RBAC enforced on the API, not just the UI)
+
+### Cross-Cutting
+- Toast notification system (success/error/info) with auto-dismiss
+- Loading spinners on all data-fetching pages
+- Error messages with retry buttons on all pages
+- JWT 401 interceptor: auto-clear token + redirect to `/login?session=expired`
+- 404 catch-all page for unmatched routes
+- Protected route guard with role-based access (admin vs customer)
+
+---
+
+## Architecture
+
+```
+src/
+├── components/       15 reusable UI components
+├── context/          3 React context providers (Cart, Auth, Toast)
+├── hooks/            4 custom hooks (useCart, useAuth, useToast, useDebounce)
+├── pages/            12 route-level page components
+├── services/         API client + auth/product/cart/order services (6 files)
+└── types/            Shared TypeScript interfaces
+```
+
+**Provider nesting:** `BrowserRouter` -> `AuthProvider` -> `ToastProvider` -> `CartProvider` -> `Routes`
+
+**Service layer:** Pages call `productService`, `authService`, `cartService`, `orderService`, `adminService` which use `apiClient` (Axios with JWT interceptor). All data comes from the backend API.
+
+**Cart:** Managed entirely in frontend React state (CartContext). There is no server-side cart API — cartService exposes no-op sync stubs and the cart is NOT persisted across page refreshes. Discount validation is the one cart feature that hits the real backend.
+
+**Auth flow:** JWT stored in localStorage, decoded client-side for user info. Axios interceptor catches 401 responses globally and redirects to `/login?session=expired`. Checkout requires authentication with `?returnTo=` URL preservation.
+
+---
+
+## Backend API Endpoints
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/api/products` | List products (`?page`, `?limit`, `?category`, `?search`) |
+| GET | `/api/products/:id` | Get single product |
+| POST | `/api/products` | Create product (admin) |
+| PUT | `/api/products/:id` | Update product (admin) |
+| DELETE | `/api/products/:id` | Delete product (admin) |
+| GET | `/api/search` | Search (`?q`, `?page`, `?limit`) — text + typo-tolerant fallbacks |
+| POST | `/api/auth/register` | Register — returns `{ token, id, name, email, role }` |
+| POST | `/api/auth/login` | Login — returns `{ token, id, name, email, role }` |
+| POST | `/api/orders` | Place order (auth) |
+| GET | `/api/orders` | Get user's order history (auth) |
+| GET | `/api/orders/:orderId` | Get single order detail (auth) |
+| POST | `/api/orders/discount/validate` | Validate a discount code (auth) |
+| GET | `/api/admin/orders` | All orders, optional `?status=` filter (admin) |
+| GET | `/api/admin/orders/:orderId` | Single order detail (admin) |
+| PATCH | `/api/admin/orders/:orderId/status` | Update order status (admin) |
+| GET | `/api/admin/stats` | Dashboard statistics (admin) |
+
+> Note: there is no server-side cart API. The cart lives in frontend state only; the discount validation and order placement endpoints above are the cart's backend touchpoints.
+
+---
+
+## Known Limitations
+
+1. **Cart is not persisted across page refreshes** — The cart lives entirely in frontend React state (CartContext). There is no server-side cart API, so refreshing the browser clears the cart. This is a deliberate scoping decision: checkout sends the item list directly to the order API.
+2. **Guest checkout not supported** — Placing an order requires a logged-in account. Guest checkout is out of scope for the current version.
+3. **Payment is mock only** — Only "Cash on Delivery" and a fake "Mock Card" option are offered. No real payment gateway or card processing is integrated.
+4. **Product images are placeholders** — Seed products use picsum.photos placeholder URLs, which depend on an external service being reachable.
+5. **401 redirect does a full page reload** — The Axios interceptor redirects via `window.location.href`, which loses React state. Acceptable for the current scope.
+6. **Single-developer scope** — This frontend was built solo, covering the scope of a three-person team's client work (see the server README for the backend's equivalent note). Some areas favor breadth over depth. See *Team & Contribution Transparency* below for the full picture.
+
+---
+
+## Team & Contribution Transparency
+
+This project was scoped as a **three-person team**: a frontend developer, a backend developer, and an AI/search engineer. During Weeks 1-4 the assigned team members were inactive, so **all frontend, backend, and AI/search work in this repository was completed by one author** (the repository's author), covering all three roles' scope.
+
+What that means concretely:
+
+| Intended role | Scope covered by the author |
+|---------------|-----------------------------|
+| Frontend developer | This entire `client/` — React 19 app, all pages, routing, state, styling, responsive design |
+| Backend developer | Entire `server/` — Express API, MongoDB models, JWT auth, RBAC, Redis caching, Docker setup |
+| AI/search engineer | `GET /api/search` — MongoDB `$text` weighted search + Levenshtein/regex typo fallbacks + scaffolded vector-search path |
+
+This is documented openly rather than hidden: the code, tests, and bug-fix history (`INTEGRATION_TEST_BUGS.md`) are all attributable to a single contributor, and the scope was delivered in full across Weeks 1-4.
+
+---
+
+## Search — Demo Queries
+
+These queries showcase the search engine's relevance ranking and typo tolerance (MongoDB `$text` weighted scoring with Levenshtein + regex fallbacks):
+
+| Query | Expected Result |
+|-------|-----------------|
+| "wireless headphones" | Ranked electronics results (headphones before unrelated items) |
+| "headphonse" (typo) | Headphones via typo-tolerant fuzzy fallback |
+| "chocolate" | Grocery item(s) containing chocolate |
+| "electro" (partial) | Electronics items via regex partial-match fallback |
+
+> True semantic vector search (Atlas `$vectorSearch` + OpenAI embeddings) is scaffolded on the server but requires an embedding provider and an Atlas vector index. The shipping search path above works on any MongoDB instance with zero external setup — this is what the demo uses.
+
+---
+
+## Demo Script
+
+A structured step-by-step demo walkthrough is available in [`DEMO_SCRIPT.md`](../DEMO_SCRIPT.md), covering the full purchase journey with search examples, talking points, and a pre-demo checklist.
+
+---
+
+## Week 4 — Remaining Work
+
+| Area | Target | Status |
+|------|--------|--------|
+| Admin dashboard | UI polish, improved forms, responsive layout | Done |
+| User registration | Registration page with form validation | Done |
+| RBAC enforcement | Server-side role-based access control | Done |
+| Final integration | Cross-team end-to-end testing with backend | Done — full E2E passing |
+| Product images | Real images from CDN/storage (replace placeholder URLs) | Pending |
+| Cart persistence | Server-side cart or localStorage persistence | Pending |
+| Real payments | Payment gateway integration (currently mock) | Pending |
+| Responsive polish | Mobile/tablet refinements across all pages | Pending |
+| Deployment | Production build optimization, deployment prep | Pending |
