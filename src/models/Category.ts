@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface ICategory extends Document {
   name: string;
-  slug: string;
+  slug?: string;
   description?: string;
   image?: string;
   parent?: mongoose.Types.ObjectId;
@@ -22,10 +22,10 @@ const CategorySchema = new Schema<ICategory>(
     },
     slug: {
       type: String,
-      required: true,
       unique: true,
       lowercase: true,
       trim: true,
+      // Remove required: true - let it be auto-generated
     },
     description: {
       type: String,
@@ -52,9 +52,9 @@ CategorySchema.index({ name: 1 });
 CategorySchema.index({ parent: 1 });
 CategorySchema.index({ isActive: 1 });
 
-// Pre-save middleware to generate slug
+// ✅ Pre-save middleware to generate slug
 CategorySchema.pre("save", function (next) {
-  if (this.isModified("name")) {
+  if (this.isModified("name") || !this.slug) {
     this.slug = this.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")

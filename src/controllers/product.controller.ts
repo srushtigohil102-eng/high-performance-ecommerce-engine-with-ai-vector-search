@@ -5,6 +5,7 @@ import cloudinary from "../config/cloudinary";
 import logger from "../utils/logger";
 import fs from "fs";
 import { sendStockAlert } from "../services/socket.service";
+import { generateProductEmbedding } from "../services/embedding.service";
 
 // ===== CREATE PRODUCT =====
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
@@ -52,12 +53,11 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
           use_filename: true,
         });
         imageUrls.push(result.secure_url);
-        // Remove local file after upload
         fs.unlinkSync(file.path);
       }
     }
 
-    // Parse tags from string to array
+    // Parse tags
     const tagsArray = tags ? (typeof tags === "string" ? tags.split(",").map((t: string) => t.trim()) : tags) : [];
 
     // Create product
@@ -75,9 +75,18 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
       dimensions: dimensions ? JSON.parse(dimensions) : undefined,
     });
 
+    // ✅ FIX: Generate embedding after product creation
+    try {
+      await generateProductEmbedding(product);
+      logger.info(`✅ Embedding generated for: ${product.name}`);
+    } catch (embeddingError) {
+      logger.warn(`⚠️ Embedding generation failed for ${product.name}: ${embeddingError}`);
+      // Product created successfully, just log the warning
+    }
+
     // ✅ Send stock alert if stock is low
     if (product.stock < 10) {
-      await sendStockAlert(product._id.toString());
+      await sendStockAlert(product._id.toString(), product.stock);
     }
 
     res.status(201).json({
@@ -187,11 +196,8 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
       const files = req.files as Express.Multer.File[];
       const newImages: string[] = [];
       
-      // Get existing product to keep old images if needed
       const product = await Product.findById(id);
       if (product) {
-        // Keep existing images (unless we want to replace)
-        // For now, we'll append new images
         for (const file of files) {
           const result = await cloudinary.uploader.upload(file.path, {
             folder: "ecommerce/products",
@@ -221,9 +227,19 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
+    // ✅ Regenerate embedding if important fields changed
+    if (updateData.name || updateData.description || updateData.category || updateData.tags) {
+      try {
+        await generateProductEmbedding(product);
+        logger.info(`✅ Embedding regenerated for: ${product.name}`);
+      } catch (embeddingError) {
+        logger.warn(`⚠️ Embedding regeneration failed for ${product.name}`);
+      }
+    }
+
     // ✅ Send stock alert if stock is low
     if (product.stock < 10) {
-      await sendStockAlert(product._id.toString());
+      await sendStockAlert(product._id.toString(), product.stock);
     }
 
     res.status(200).json({
@@ -255,7 +271,6 @@ export const deleteProduct = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Soft delete
     product.isActive = false;
     await product.save();
 
@@ -293,6 +308,36 @@ export const getProductsByCategory = async (req: Request, res: Response): Promis
     res.status(500).json({
       success: false,
       message: "Failed to fetch products",
+      error: (error as Error).message,
+    });
+  }
+};
+
+// ===== GENERATE EMBEDDING FOR PRODUCT =====
+export const generateProductEmbeddingController = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    
+    const product = await Product.findById(id);
+    if (!product) {
+      res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+      return;
+    }
+
+    await generateProductEmbedding(product);
+    
+    res.status(200).json({
+      success: true,
+      message: `Embedding generated successfully for ${product.name}`,
+    });
+  } catch (error) {
+    logger.error(`Generate embedding error: ${error}`);
+    res.status(500).json({
+      success: false,
+      message: "Failed to generate embedding",
       error: (error as Error).message,
     });
   }

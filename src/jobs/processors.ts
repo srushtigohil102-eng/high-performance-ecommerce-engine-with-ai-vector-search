@@ -11,10 +11,10 @@ emailQueue.process(async (job) => {
 
   switch (type) {
     case "order_confirmation":
-      await sendOrderConfirmationEmail(data.to, data.order);
+      await sendOrderConfirmationEmail({ to: data.to, order: data.order });
       break;
     case "welcome":
-      await sendWelcomeEmail(data.to, data.name);
+      await sendWelcomeEmail({ to: data.to, name: data.name });
       break;
     default:
       logger.warn(`Unknown email type: ${type}`);
@@ -68,7 +68,7 @@ notificationQueue.process(async (job) => {
   switch (type) {
     case "order_placed":
       // Send notifications
-      await sendOrderConfirmationEmail(data.user.email, data.order);
+      await sendOrderConfirmationEmail({ to: data.user.email, order: data.order });
       break;
     default:
       logger.warn(`Unknown notification type: ${type}`);

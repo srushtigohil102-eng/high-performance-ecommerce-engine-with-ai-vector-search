@@ -11,7 +11,7 @@ export interface IOrder extends Document {
   items: IOrderItem[];
   totalAmount: number;
   status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
-  paymentStatus: "pending" | "paid" | "failed";
+  paymentStatus: "pending" | "paid" | "failed" | "refunded";
   paymentId?: string;
   shippingAddress: {
     fullName: string;
@@ -65,7 +65,7 @@ const OrderSchema = new Schema<IOrder>(
     },
     paymentStatus: {
       type: String,
-      enum: ["pending", "paid", "failed"],
+      enum: ["pending", "paid", "failed", "refunded"],
       default: "pending",
     },
     paymentId: {
@@ -82,7 +82,6 @@ const OrderSchema = new Schema<IOrder>(
     },
     orderNumber: {
       type: String,
-      required: true,
       unique: true,
     },
   },
@@ -96,7 +95,7 @@ OrderSchema.index({ status: 1 });
 OrderSchema.index({ orderNumber: 1 });
 OrderSchema.index({ createdAt: -1 });
 
-// Pre-save middleware to generate order number
+// ✅ Pre-save middleware to generate order number
 OrderSchema.pre("save", function (next) {
   if (this.isNew) {
     const timestamp = Date.now().toString().slice(-8);

@@ -16,7 +16,6 @@ export const getDashboardStats = async (_req: Request, res: Response): Promise<v
       ]),
     ]);
 
-    // Get recent orders (last 7 days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -27,7 +26,6 @@ export const getDashboardStats = async (_req: Request, res: Response): Promise<v
       .sort({ createdAt: -1 })
       .limit(5);
 
-    // Get order status distribution
     const orderStatusDistribution = await Order.aggregate([
       { $group: { _id: "$status", count: { $sum: 1 } } }
     ]);
@@ -302,6 +300,100 @@ export const getCategoryAnalytics = async (_req: Request, res: Response): Promis
       success: false,
       message: "Failed to get category analytics",
       error: (error as Error).message,
+    });
+  }
+};
+
+// ===== GET REVENUE ANALYTICS (Test 56) =====
+export const getRevenueAnalytics = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { period = "week" } = req.query;
+    let groupFormat: any;
+    let dateRange: Date;
+
+    const now = new Date();
+    switch (period) {
+      case "week":
+        dateRange = new Date(now.setDate(now.getDate() - 7));
+        groupFormat = { day: { $dayOfMonth: "$createdAt" }, month: { $month: "$createdAt" }, year: { $year: "$createdAt" } };
+        break;
+      case "month":
+        dateRange = new Date(now.setMonth(now.getMonth() - 1));
+        groupFormat = { day: { $dayOfMonth: "$createdAt" }, month: { $month: "$createdAt" }, year: { $year: "$createdAt" } };
+        break;
+      default:
+        dateRange = new Date(now.setDate(now.getDate() - 7));
+        groupFormat = { day: { $dayOfMonth: "$createdAt" }, month: { $month: "$createdAt" }, year: { $year: "$createdAt" } };
+    }
+
+    const revenue = await Order.aggregate([
+      { $match: { createdAt: { $gte: dateRange }, status: { $ne: "cancelled" } } },
+      { $group: { _id: groupFormat, total: { $sum: "$totalAmount" } } },
+      { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
+    ]);
+
+    const labels = revenue.map(item => {
+      const { year, month, day } = item._id;
+      return `${day}/${month}/${year}`;
+    });
+    const values = revenue.map(item => item.total);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        period,
+        labels,
+        values,
+        total: values.reduce((a, b) => a + b, 0),
+      },
+    });
+  } catch (error: any) {
+    logger.error(`Revenue analytics error: ${error}`);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get revenue analytics",
+      error: error.message,
+    });
+  }
+};
+
+// ===== GET RECENT ORDERS (Test 57) =====
+export const getRecentOrders = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { status, limit = 10, page = 1 } = req.query;
+    const filter: any = {};
+    if (status) filter.status = status;
+
+    const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+
+    const [orders, total] = await Promise.all([
+      Order.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit as string))
+        .populate("user", "firstName lastName email")
+        .lean(),
+      Order.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        orders,
+        pagination: {
+          page: parseInt(page as string),
+          limit: parseInt(limit as string),
+          total,
+          pages: Math.ceil(total / parseInt(limit as string)),
+        },
+      },
+    });
+  } catch (error: any) {
+    logger.error(`Recent orders error: ${error}`);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get recent orders",
+      error: error.message,
     });
   }
 };

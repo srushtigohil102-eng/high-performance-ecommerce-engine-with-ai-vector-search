@@ -72,27 +72,32 @@ export const sendOrderNotification = async (orderId: string, userId: string) => 
   }
 };
 
-export const sendStockAlert = async (productId: string) => {
+// ==== accepts productId and stock =====
+
+export const sendStockAlert = async (productId: string, stock?: number) => {
   try {
     const product = await Product.findById(productId);
     if (!product) return;
+
+    const actualStock = stock !== undefined ? stock : product.stock;
 
     io.to("admin").emit("stock-alert", {
       type: "low_stock",
       data: {
         productId: product._id,
         productName: product.name,
-        stock: product.stock,
+        stock: actualStock,
         sku: product.sku,
         timestamp: new Date(),
       },
     });
 
-    logger.info(`Stock alert sent for product ${productId}`);
+    logger.info(`Stock alert sent for product ${productId} (stock: ${actualStock})`);
   } catch (error) {
     logger.error(`Send stock alert error: ${error}`);
   }
 };
+
 
 export const sendOrderStatusUpdate = async (orderId: string, status: string) => {
   try {

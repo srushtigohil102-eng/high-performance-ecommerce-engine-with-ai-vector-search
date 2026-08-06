@@ -1,6 +1,8 @@
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import { Application } from "express";
+declare module "js-yaml";
+import yaml from "js-yaml"; // 👈 needed for YAML output
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -250,6 +252,26 @@ const options: swaggerJsdoc.Options = {
 export const swaggerSpec = swaggerJsdoc(options);
 
 export const setupSwagger = (app: Application) => {
+  // Swagger UI
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+  // Serve JSON spec
+  app.get("/api-docs.json", (_req, res) => {
+    res.json(swaggerSpec);
+  });
+
+  // Serve YAML spec
+  app.get("/api-docs.yaml", (_req, res) => {
+    try {
+      const yamlSpec = yaml.dump(swaggerSpec);
+      res.set("Content-Type", "text/yaml");
+      res.send(yamlSpec);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to generate YAML" });
+    }
+  });
+
   console.log("📚 Swagger Docs available at: http://localhost:5000/api-docs");
+  console.log("📄 JSON spec at: http://localhost:5000/api-docs.json");
+  console.log("📄 YAML spec at: http://localhost:5000/api-docs.yaml");
 };

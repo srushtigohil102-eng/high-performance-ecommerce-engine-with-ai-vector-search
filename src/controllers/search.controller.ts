@@ -16,10 +16,8 @@ export const vectorSearch = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Generate embedding for the query
     const queryEmbedding = await generateEmbedding(q as string);
 
-    // Perform vector search
     const results = await Product.aggregate([
       {
         $vectorSearch: {
@@ -73,12 +71,9 @@ export const hybridSearch = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    // Generate embedding for query
     const queryEmbedding = await generateEmbedding(q as string);
 
-    // Run both searches in parallel
     const [textResults, vectorResults] = await Promise.all([
-      // Text search
       Product.aggregate([
         {
           $match: {
@@ -110,8 +105,6 @@ export const hybridSearch = async (req: Request, res: Response): Promise<void> =
           },
         },
       ]),
-
-      // Vector search
       Product.aggregate([
         {
           $vectorSearch: {
@@ -142,7 +135,6 @@ export const hybridSearch = async (req: Request, res: Response): Promise<void> =
       ]),
     ]);
 
-    // Merge and rank results
     const mergedResults = mergeAndRankResults(textResults, vectorResults);
 
     res.status(200).json({
@@ -165,7 +157,6 @@ export const hybridSearch = async (req: Request, res: Response): Promise<void> =
 const mergeAndRankResults = (textResults: any[], vectorResults: any[]) => {
   const map = new Map();
 
-  // Weight text results
   textResults.forEach((item, index) => {
     const weight = 0.4 * (1 - index / (textResults.length || 1));
     const id = item._id.toString();
@@ -175,7 +166,6 @@ const mergeAndRankResults = (textResults: any[], vectorResults: any[]) => {
     });
   });
 
-  // Weight vector results
   vectorResults.forEach((item, index) => {
     const weight = 0.6 * (1 - index / (vectorResults.length || 1));
     const id = item._id.toString();
@@ -189,7 +179,6 @@ const mergeAndRankResults = (textResults: any[], vectorResults: any[]) => {
     }
   });
 
-  // Sort by combined score
   return Array.from(map.values())
     .sort((a, b) => b.combinedScore - a.combinedScore)
     .map((item) => ({
@@ -198,10 +187,11 @@ const mergeAndRankResults = (textResults: any[], vectorResults: any[]) => {
     }));
 };
 
-// ===== SIMILAR PRODUCTS (Recommendations) =====
+// ===== SIMILAR PRODUCTS =====
 export const getSimilarProducts = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { productId, limit = 5 } = req.params;
+    const { productId } = req.params;
+    const { limit = 5 } = req.query;
 
     const product = await Product.findById(productId);
     if (!product) {
@@ -262,6 +252,155 @@ export const getSimilarProducts = async (req: Request, res: Response): Promise<v
       success: false,
       message: "Failed to find similar products",
       error: (error as Error).message,
+    });
+  }
+};
+
+// ===== RECOMMENDATIONS (Personalized) =====
+export const getRecommendations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { limit = 5 } = req.query;
+    // const userId = req.user?.id; // from auth middleware – can be used later
+
+    const recommendations = await Product.find({ isActive: true })
+      .sort({ price: -1, ratings: -1 })
+      .limit(parseInt(limit as string, 10))
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      message: "Personalized recommendations",
+      count: recommendations.length,
+      data: recommendations,
+    });
+  } catch (error: any) {
+    logger.error(`Recommendations error: ${error}`);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get recommendations",
+      error: error.message,
+    });
+  }
+};
+
+// ===== ADVANCED SEARCH with Filters =====
+export const advancedSearch = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { q, category, minPrice, maxPrice, limit = 10 } = req.query;
+    const limitNum = parseInt(limit as string, 10);
+
+    if (q) {
+      const queryEmbedding = await generateEmbedding(q as string);
+
+      const vectorFilter: any = { isActive: true };
+      if (category) vectorFilter.category = category;
+
+      const pipeline: any[] = [
+        {
+          $vectorSearch: {
+            index: "product_vector_index",
+            path: "embedding",
+            queryVector: queryEmbedding,
+            numCandidates: 100,
+            limit: limitNum * 2,
+            filter: vectorFilter,
+          },
+        },
+        {
+          $addFields: { score: { $meta: "vectorSearchScore" } },
+        },
+      ];
+
+      const matchConditions: any[] = [];
+      if (minPrice || maxPrice) {
+        const priceObj: any = {};
+        if (minPrice) priceObj.$gte = parseFloat(minPrice as string);
+        if (maxPrice) priceObj.$lte = parseFloat(maxPrice as string);
+        matchConditions.push({ price: priceObj });
+      }
+
+      if (matchConditions.length > 0) {
+        pipeline.push({
+          $match: {
+            $and: matchConditions,
+          },
+        });
+      }
+
+      pipeline.push({
+        $project: {
+          _id: 1,
+          name: 1,
+          description: 1,
+          price: 1,
+          category: 1,
+          images: 1,
+          stock: 1,
+          score: 1,
+        },
+      });
+
+      const results = await Product.aggregate(pipeline);
+
+      res.status(200).json({
+        success: true,
+        searchType: "vector_with_filters",
+        count: results.length,
+        data: results,
+      });
+      return;
+    } else {
+      const filter: any = { isActive: true };
+      if (category) filter.category = category;
+      if (minPrice || maxPrice) {
+        filter.price = {};
+        if (minPrice) filter.price.$gte = parseFloat(minPrice as string);
+        if (maxPrice) filter.price.$lte = parseFloat(maxPrice as string);
+      }
+
+      const results = await Product.find(filter).limit(limitNum).lean();
+
+      res.status(200).json({
+        success: true,
+        searchType: "filtered",
+        count: results.length,
+        data: results,
+      });
+      return;
+    }
+  } catch (error) {
+    logger.error(`Advanced search error: ${error}`);
+    res.status(500).json({
+      success: false,
+      message: "Advanced search failed",
+      error: (error as Error).message,
+    });
+  }
+};
+// ===== TRENDING PRODUCTS =====
+export const getTrending = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { limit = 10 } = req.query;
+
+    // For trending, we can sort by highest ratings, or by a custom field like views/sales.
+    // If you have a "trendingScore" field, use that. Otherwise, fallback to ratings and price.
+    const trending = await Product.find({ isActive: true })
+      .sort({ ratings: -1, price: -1 }) // highest ratings first, then highest price
+      .limit(parseInt(limit as string, 10))
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      message: "Trending products",
+      count: trending.length,
+      data: trending,
+    });
+  } catch (error: any) {
+    logger.error(`Trending error: ${error}`);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get trending products",
+      error: error.message,
     });
   }
 };
