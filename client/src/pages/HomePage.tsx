@@ -82,21 +82,27 @@ export default function HomePage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Hero banner */}
-      <section className="relative mb-10 overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-indigo-600 to-accent px-6 py-12 text-white sm:px-12 sm:py-16">
-        <div className="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
-        <div className="pointer-events-none absolute -bottom-16 -left-8 h-56 w-56 rounded-full bg-white/10 blur-2xl" aria-hidden="true" />
+      <section className="relative mb-12 overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-surface to-surface-elevated px-6 py-12 sm:px-12 sm:py-16 shadow-md">
+        {/* Floating background mesh blobs */}
+        <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none opacity-70 dark:opacity-40" aria-hidden="true">
+          <div className="absolute -top-12 left-1/4 h-72 w-72 rounded-full bg-primary/20 blur-3xl animate-blob" />
+          <div className="absolute top-1/4 right-1/4 h-80 w-80 rounded-full bg-accent/20 blur-3xl animate-blob animation-delay-2000" />
+          <div className="absolute -bottom-16 left-1/3 h-64 w-64 rounded-full bg-primary/15 blur-3xl animate-blob animation-delay-4000" />
+        </div>
+
         <div className="relative">
-          <h1 className="mb-3 max-w-xl text-3xl font-bold leading-tight sm:text-4xl">
-            Everything you need, delivered fast
+          <h1 className="mb-4 max-w-2xl font-display text-4xl font-extrabold tracking-tight text-text-primary sm:text-hero leading-tight">
+            Everything you need, <br className="hidden sm:inline" />
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">delivered fast</span>
           </h1>
-          <p className="mb-6 max-w-lg text-sm text-white/85 sm:text-base">
+          <p className="mb-8 max-w-xl text-sm text-text-secondary sm:text-base leading-relaxed">
             Browse thousands of products with instant full-text search, typo-tolerant
             matching, and real-time stock updates.
           </p>
           <form
             role="search"
             onSubmit={handleHeroSearch}
-            className="mb-6 flex w-full max-w-xl flex-col gap-2 sm:flex-row"
+            className="mb-8 flex w-full max-w-xl flex-col gap-2.5 sm:flex-row"
           >
             <input
               type="search"
@@ -104,25 +110,25 @@ export default function HomePage() {
               onChange={(e) => setHeroQuery(e.target.value)}
               placeholder="Search for anything..."
               aria-label="Search products"
-              className="min-h-[44px] w-full flex-1 rounded-lg border border-white/40 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition placeholder:text-gray-400 focus:border-white focus:outline-none focus:ring-2 focus:ring-white/70 sm:text-base"
+              className="min-h-[44px] w-full flex-1 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text-primary shadow-sm transition-all duration-300 placeholder:text-text-secondary/50 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/25 sm:text-base"
             />
             <Button
               type="submit"
-              className="w-full bg-white text-primary! hover:bg-indigo-50 hover:shadow-md hover:-translate-y-0.5 sm:w-auto"
+              className="w-full sm:w-auto"
             >
               Search
             </Button>
           </form>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link to="/?category=Electronics" className="sm:w-auto">
-              <Button className="w-full bg-white text-primary! hover:bg-indigo-50 hover:shadow-md hover:-translate-y-0.5 sm:w-auto">
+              <Button className="w-full sm:w-auto">
                 Shop Electronics
               </Button>
             </Link>
             <Link to="/search" className="sm:w-auto">
               <Button
                 variant="outline"
-                className="w-full border-white/60 text-white hover:bg-white/10 focus:ring-white sm:w-auto"
+                className="w-full sm:w-auto"
               >
                 Try Search
               </Button>
@@ -131,15 +137,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">Products</h2>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="font-display text-2xl font-bold text-text-primary sm:text-section">Products</h2>
 
         {/* Category filter */}
         <div className="w-full sm:w-auto">
           <select
             value={category}
             onChange={handleCategoryChange}
-            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary min-h-[44px] sm:w-auto dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:focus:border-primary dark:focus:ring-primary"
+            className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm text-text-primary transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary min-h-[44px] sm:w-auto"
             aria-label="Filter by category"
           >
             <option value="">All Categories</option>
@@ -154,7 +160,7 @@ export default function HomePage() {
 
       {/* Results count */}
       {!loading && (
-        <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+        <p className="mb-4 text-sm text-text-secondary">
           {total} {total === 1 ? 'product' : 'products'} found
         </p>
       )}
@@ -168,9 +174,9 @@ export default function HomePage() {
           </ErrorMessage>
         </div>
       ) : products.length === 0 ? (
-        <div className="py-12 text-center">
-          <p className="mb-2 text-lg font-medium text-gray-900 dark:text-white">No products found</p>
-          <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+        <div className="py-12 text-center bg-surface border border-border rounded-xl">
+          <p className="mb-2 text-lg font-medium text-text-primary">No products found</p>
+          <p className="mb-4 text-sm text-text-secondary">
             {category
               ? 'Try adjusting your filter or browse all products.'
               : 'No products are available right now. Check back soon!'}
@@ -179,7 +185,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setSearchParams({}, { replace: true })}
-              className="text-sm font-medium text-gray-900 underline hover:text-gray-600 dark:text-white dark:hover:text-gray-300"
+              className="text-sm font-medium text-primary underline hover:text-primary-hover"
             >
               Clear filter
             </button>
@@ -188,8 +194,8 @@ export default function HomePage() {
       ) : (
         <>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+            {products.map((product, index) => (
+              <ProductCard key={product.id} product={product} index={index} />
             ))}
           </div>
 

@@ -29,7 +29,7 @@ export default function Layout() {
   }, [location.pathname])
 
   return (
-    <div className="flex min-h-screen flex-col bg-white dark:bg-gray-950">
+    <div className="flex min-h-screen flex-col bg-background text-text-primary">
       <Navbar />
       <main className="flex-1">
         <div key={location.pathname} className="animate-fade-in">

@@ -74,9 +74,9 @@ export default function ProductDetailPage() {
   if (!product) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8">
-        <div className="mx-auto max-w-md rounded-lg border border-gray-200 bg-gray-50 p-6 text-center dark:border-gray-800 dark:bg-gray-900">
-          <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Product Not Found</h2>
-          <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+        <div className="mx-auto max-w-md rounded-xl border border-border bg-surface p-6 text-center shadow-sm">
+          <h2 className="mb-2 font-display text-lg font-bold text-text-primary">Product Not Found</h2>
+          <p className="mb-4 text-sm text-text-secondary">
             The product you're looking for doesn't exist or may have been removed.
           </p>
           <Link to="/">
@@ -90,23 +90,23 @@ export default function ProductDetailPage() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
       {/* Breadcrumb */}
-      <nav className="mb-6 flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400" aria-label="Breadcrumb">
-        <Link to="/" className="transition hover:text-gray-900 dark:hover:text-white">
+      <nav className="mb-6 flex items-center gap-1.5 text-sm text-text-secondary" aria-label="Breadcrumb">
+        <Link to="/" className="transition hover:text-primary">
           Home
         </Link>
         <span aria-hidden="true">/</span>
         <Link
           to={`/?category=${encodeURIComponent(product.category)}`}
-          className="transition hover:text-gray-900 dark:hover:text-white"
+          className="transition hover:text-primary"
         >
           {product.category}
         </Link>
         <span aria-hidden="true">/</span>
-        <span className="truncate font-medium text-gray-900 dark:text-white">{product.name}</span>
+        <span className="truncate font-medium text-text-primary">{product.name}</span>
       </nav>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800">
+        <div className="flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
           <ProductImage
             src={product.imageUrl}
             alt={product.name}
@@ -115,29 +115,29 @@ export default function ProductDetailPage() {
         </div>
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">{product.name}</h1>
+            <h1 className="font-display text-2xl font-bold text-text-primary sm:text-3xl">{product.name}</h1>
             <StockBadge stock={product.stock} />
           </div>
-          <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+          <p className="text-2xl font-bold text-accent">
             {formatCurrency(product.price)}
           </p>
-          <p className="text-gray-600 dark:text-gray-400">{product.description}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Category: {product.category}
+          <p className="text-sm text-text-secondary sm:text-base leading-relaxed">{product.description}</p>
+          <p className="text-sm text-text-secondary">
+            Category: <span className="font-semibold text-text-primary">{product.category}</span>
           </p>
 
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Qty:</span>
+            <span className="text-sm font-medium text-text-secondary">Qty:</span>
             <button
               type="button"
               onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               disabled={outOfStock}
               aria-label="Decrease quantity"
-              className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 text-lg text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border text-lg text-text-secondary hover:bg-surface-elevated transition disabled:cursor-not-allowed disabled:opacity-40"
             >
               &minus;
             </button>
-            <span className="w-8 text-center text-sm font-medium text-gray-900 dark:text-white" aria-live="polite">
+            <span className="w-8 text-center text-sm font-medium text-text-primary" aria-live="polite">
               {quantity}
             </span>
             <button
@@ -145,7 +145,7 @@ export default function ProductDetailPage() {
               onClick={() => setQuantity((q) => q + 1)}
               disabled={outOfStock || quantity >= (product.stock ?? Infinity)}
               aria-label="Increase quantity"
-              className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-300 text-lg text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border text-lg text-text-secondary hover:bg-surface-elevated transition disabled:cursor-not-allowed disabled:opacity-40"
             >
               +
             </button>
@@ -163,10 +163,10 @@ export default function ProductDetailPage() {
 
       {related.length > 0 && (
         <section className="mt-14">
-          <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">You may also like</h2>
+          <h2 className="mb-4 font-display text-xl font-bold text-text-primary">You may also like</h2>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {related.map((item) => (
-              <ProductCard key={item.id} product={item} />
+            {related.map((item, index) => (
+              <ProductCard key={item.id} product={item} index={index} />
             ))}
           </div>
         </section>

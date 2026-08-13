@@ -187,7 +187,7 @@ export default function AdminPage() {
   return (
     <div>
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Products</h1>
+        <h1 className="font-display text-2xl font-bold text-text-primary">Products</h1>
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
@@ -200,46 +200,46 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div className="mb-4 rounded-md border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200">
+      <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs font-medium text-primary">
         Manage the product catalog. Changes take effect immediately for all visitors.
       </div>
 
       {products.length === 0 ? (
-        <p className="text-gray-500 dark:text-gray-400">No products found. Add your first product above.</p>
+        <p className="text-text-secondary">No products found. Add your first product above.</p>
       ) : (
         <>
           {/* Desktop table */}
-          <div className="hidden overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800 md:block">
+          <div className="hidden overflow-x-auto rounded-xl border border-border bg-surface shadow-sm md:block">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 text-xs uppercase text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+              <thead className="bg-surface-elevated text-xs font-bold uppercase tracking-wider text-text-secondary">
                 <tr>
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Price</th>
-                  <th className="px-4 py-3">Category</th>
-                  <th className="px-4 py-3">Stock</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-4 py-3.5">Name</th>
+                  <th className="px-4 py-3.5">Price</th>
+                  <th className="px-4 py-3.5">Category</th>
+                  <th className="px-4 py-3.5">Stock</th>
+                  <th className="px-4 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+              <tbody className="divide-y divide-border">
                 {products.map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-gray-900">
-                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{product.name}</td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{formatCurrency(product.price)}</td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{product.category}</td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{product.stock ?? '—'}</td>
-                    <td className="px-4 py-3 text-right">
+                  <tr key={product.id} className="hover:bg-surface-elevated/40 transition-colors duration-150">
+                    <td className="px-4 py-3.5 font-semibold text-text-primary">{product.name}</td>
+                    <td className="px-4 py-3.5 text-accent font-bold">{formatCurrency(product.price)}</td>
+                    <td className="px-4 py-3.5 text-text-secondary">{product.category}</td>
+                    <td className="px-4 py-3.5 text-text-secondary font-medium">{product.stock ?? '—'}</td>
+                    <td className="px-4 py-3.5 text-right">
                       <div className="flex justify-end gap-2">
                         <button
                           type="button"
                           onClick={() => openEditForm(product)}
-                          className="rounded-md px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100 min-h-[44px] dark:text-gray-300 dark:hover:bg-gray-800"
+                          className="rounded-md px-3 py-1.5 text-xs font-semibold text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition min-h-[44px]"
                         >
                           Edit
                         </button>
                         <button
                           type="button"
                           onClick={() => confirmDelete(product)}
-                          className="rounded-md px-3 py-1 text-xs font-medium text-red-600 hover:bg-red-50 min-h-[44px] dark:text-red-400 dark:hover:bg-red-950"
+                          className="rounded-md px-3 py-1.5 text-xs font-semibold text-error hover:bg-error/10 transition min-h-[44px]"
                         >
                           Delete
                         </button>
@@ -254,28 +254,28 @@ export default function AdminPage() {
           {/* Mobile card layout */}
           <div className="flex flex-col gap-3 md:hidden">
             {products.map((product) => (
-              <div key={product.id} className="rounded-lg border border-gray-200 p-4 dark:border-gray-800 dark:bg-gray-900">
+              <div key={product.id} className="rounded-xl border border-border bg-surface p-4 shadow-sm">
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-900 dark:text-white">{product.name}</p>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{product.category}</p>
+                    <p className="font-semibold text-text-primary">{product.name}</p>
+                    <p className="mt-1 text-xs text-text-secondary font-medium">{product.category}</p>
                   </div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{formatCurrency(product.price)}</p>
+                  <p className="text-sm font-bold text-accent">{formatCurrency(product.price)}</p>
                 </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Stock: {product.stock ?? '—'}</p>
+                <div className="flex items-center justify-between border-t border-border/40 pt-2 mt-2">
+                  <p className="text-xs text-text-secondary font-semibold">Stock: {product.stock ?? '—'}</p>
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => openEditForm(product)}
-                      className="rounded-md px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-100 min-h-[44px] dark:text-gray-300 dark:hover:bg-gray-800"
+                      className="rounded-md px-3 py-1.5 text-xs font-semibold text-text-secondary hover:bg-surface-elevated hover:text-text-primary transition min-h-[44px]"
                     >
                       Edit
                     </button>
                     <button
                       type="button"
                       onClick={() => confirmDelete(product)}
-                      className="rounded-md px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 min-h-[44px] dark:text-red-400 dark:hover:bg-red-950"
+                      className="rounded-md px-3 py-1.5 text-xs font-semibold text-error hover:bg-error/10 transition min-h-[44px]"
                     >
                       Delete
                     </button>
@@ -288,9 +288,9 @@ export default function AdminPage() {
       )}
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
-          <div className="mx-0 w-full max-w-lg rounded-t-xl bg-white p-6 shadow-xl sm:mx-4 sm:rounded-xl dark:bg-gray-900">
-            <h2 className="mb-4 text-xl font-bold text-gray-900 dark:text-white">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 backdrop-blur-xs sm:items-center">
+          <div className="mx-0 w-full max-w-lg rounded-t-xl bg-surface p-6 border border-border shadow-2xl sm:mx-4 sm:rounded-xl">
+            <h2 className="mb-4 font-display text-xl font-bold text-text-primary">
               {editingProduct ? 'Edit Product' : 'Add Product'}
             </h2>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
@@ -336,13 +336,13 @@ export default function AdminPage() {
                 onChange={(e) => updateFormField('imageUrl', e.target.value)}
               />
               <div className="flex flex-col gap-1">
-                <label htmlFor="admin-desc" className="text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+                <label htmlFor="admin-desc" className="text-sm font-medium text-text-secondary">Description</label>
                 <textarea
                   id="admin-desc"
                   rows={3}
                   value={form.description}
                   onChange={(e) => updateFormField('description', e.target.value)}
-                  className="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm transition focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 min-h-[44px] dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-primary dark:focus:ring-primary"
+                  className="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text-primary transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary min-h-[44px]"
                 />
               </div>
               <div className="flex justify-end gap-3 pt-2">
@@ -359,10 +359,10 @@ export default function AdminPage() {
       )}
 
       {deletingProduct && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center">
-          <div className="mx-0 w-full max-w-sm rounded-t-xl bg-white p-6 shadow-xl sm:mx-4 sm:rounded-xl dark:bg-gray-900">
-            <h2 className="mb-2 text-lg font-bold text-gray-900 dark:text-white">Delete Product</h2>
-            <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 backdrop-blur-xs sm:items-center">
+          <div className="mx-0 w-full max-w-sm rounded-t-xl bg-surface p-6 border border-border shadow-2xl sm:mx-4 sm:rounded-xl">
+            <h2 className="mb-2 font-display text-lg font-bold text-text-primary">Delete Product</h2>
+            <p className="mb-6 text-sm text-text-secondary leading-relaxed">
               Are you sure you want to delete <strong>{deletingProduct.name}</strong>? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
@@ -376,7 +376,7 @@ export default function AdminPage() {
               <Button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+                className="bg-error bg-none! text-white hover:brightness-110 shadow-md shadow-error/15"
               >
                 {deleting ? 'Deleting...' : 'Delete'}
               </Button>

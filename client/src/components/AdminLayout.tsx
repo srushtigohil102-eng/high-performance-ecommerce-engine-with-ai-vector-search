@@ -11,10 +11,10 @@ export default function AdminLayout() {
   const { user } = useAuth()
 
   function linkClass({ isActive }: { isActive: boolean }) {
-    return `rounded-lg px-4 py-2.5 text-sm font-medium transition whitespace-nowrap ${
+    return `rounded-lg px-4 py-2.5 text-sm font-medium transition-all whitespace-nowrap ${
       isActive
-        ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
-        : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+        ? 'bg-primary text-white shadow-sm'
+        : 'text-text-secondary hover:bg-surface-elevated hover:text-text-primary'
     }`
   }
 
@@ -32,10 +32,10 @@ export default function AdminLayout() {
       <div className="mb-4 lg:mb-6">
         <div className="mb-3">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Admin</h2>
+            <h2 className="font-display text-lg font-bold text-text-primary">Admin</h2>
             <NavLink
               to="/"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-text-secondary transition hover:bg-surface-elevated hover:text-text-primary"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75" />
@@ -44,12 +44,12 @@ export default function AdminLayout() {
             </NavLink>
           </div>
           {user && (
-            <p className="mt-1 truncate text-xs text-gray-500 dark:text-gray-400">
+            <p className="mt-1 truncate text-xs text-text-secondary">
               {user.name} &middot; {user.role}
             </p>
           )}
         </div>
-        <nav className="-mx-4 flex overflow-x-auto px-4 lg:mx-0 lg:overflow-visible lg:px-0">
+        <nav className="-mx-4 flex overflow-x-auto px-4 lg:mx-0 lg:overflow-visible lg:px-0 thin-scrollbar">
           <div className="flex gap-2 lg:flex-col lg:gap-1">
             {renderNavLinks()}
           </div>

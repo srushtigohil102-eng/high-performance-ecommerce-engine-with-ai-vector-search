@@ -3,20 +3,60 @@
 /* Class-based dark mode for Tailwind v4 — toggled via `.dark` on <html> */
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root {
+  --primary: #4F46E5;
+  --primary-hover: #4338ca;
+  --accent: #F97316;
+  --background: #FAF9F6;
+  --surface: #FFFFFF;
+  --surface-elevated: #F3F4F6;
+  --text-primary: #1F2937;
+  --text-secondary: #4B5563;
+  --border: #E5E7EB;
+  --success: #10B981; /* emerald green */
+  --error: #F43F5E; /* muted red/rose */
+  --warning: #D97706;
+}
+
+.dark {
+  --primary: #818CF8;
+  --primary-hover: #6366f1;
+  --accent: #FB923C;
+  --background: #0F0F14;
+  --surface: #171721;
+  --surface-elevated: #242433;
+  --text-primary: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --border: #2E2E3E;
+  --success: #34D399; /* emerald green */
+  --error: #FB7185; /* muted red/rose */
+  --warning: #F59E0B;
+}
+
 @theme {
   /* Design tokens — single source of truth for both themes */
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
-  --color-secondary: #10b981;
-  --color-background: #f9fafb;
-  --color-surface: #ffffff;
-  --color-text: #111827;
-  --color-muted: #6b7280;
-  --color-border: #e5e7eb;
-  --color-success: #16a34a;
-  --color-error: #dc2626;
-  --color-warning: #d97706;
-  --color-accent: #7c3aed;
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-accent: var(--accent);
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-border: var(--border);
+  --color-success: var(--success);
+  --color-error: var(--error);
+  --color-warning: var(--warning);
+
+  /* Fonts */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+
+  /* Typography scale */
+  --text-hero: 3.5rem;
+  --text-section: 2rem;
+  --text-card: 1.1rem;
+  --text-body: 0.95rem;
 
   /* Motion tokens */
   --animate-fade-in: fade-in 0.4s ease-out both;
@@ -26,6 +66,10 @@
   --animate-scale-in: scale-in 0.2s ease-out both;
   --animate-slide-down: slide-down 0.3s ease-out both;
   --animate-pulse-soft: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  
+  --animate-blob: float-blob 25s infinite alternate ease-in-out;
+  --animate-card-in: card-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-badge-bounce: badge-bounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
 
   @keyframes fade-in {
     from {
@@ -102,6 +146,38 @@
       opacity: 0.5;
     }
   }
+
+  @keyframes float-blob {
+    0%, 100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+      transform: translate(40px, -60px) scale(1.15);
+    }
+    66% {
+      transform: translate(-30px, 30px) scale(0.9);
+    }
+  }
+
+  @keyframes card-in {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes badge-bounce {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.4);
+    }
+  }
 }
 
 html {
@@ -111,14 +187,41 @@ html {
 body {
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
-  background-color: #ffffff;
-  color: #111827;
+  background-color: var(--background);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .dark body {
-  background-color: #0f172a;
-  color: #f3f4f6;
+  background-color: var(--background);
+  color: var(--text-primary);
+}
+
+/* Reduced motion settings */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-delay: -1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    background-attachment: initial !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+  .animate-blob,
+  .animate-card-in,
+  .animate-badge-bounce {
+    animation: none !important;
+  }
+  .group:hover img {
+    transform: none !important;
+  }
+  .group:hover {
+    transform: none !important;
+  }
 }
 
 /* Smooth color transition while switching themes (class is removed after the

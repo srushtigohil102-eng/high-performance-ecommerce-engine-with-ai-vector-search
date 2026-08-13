@@ -140,11 +140,11 @@ function CheckoutPage() {
   if (!isAuthenticated) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="mb-8 text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">Checkout</h1>
+        <h1 className="mb-8 font-display text-2xl font-bold text-text-primary sm:text-section">Checkout</h1>
         <CheckoutSteps current="checkout" />
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center dark:border-gray-800 dark:bg-gray-900">
-          <p className="mb-2 text-lg font-medium text-gray-900 dark:text-white">Sign in to complete your order</p>
-          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
+        <div className="rounded-xl border border-border bg-surface p-8 text-center shadow-sm">
+          <p className="mb-2 text-lg font-medium text-text-primary">Sign in to complete your order</p>
+          <p className="mb-6 text-sm text-text-secondary">
             You need an account to place an order. Your cart items will be preserved.
           </p>
           <Link to="/login?returnTo=/checkout">
@@ -152,7 +152,7 @@ function CheckoutPage() {
           </Link>
           <Link
             to="/cart"
-            className="mt-3 block text-center text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+            className="mt-3 block text-center text-sm font-semibold text-text-secondary hover:text-text-primary transition-colors"
           >
             &larr; Back to Cart
           </Link>
@@ -168,25 +168,25 @@ function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <h1 className="mb-8 text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">Checkout</h1>
+      <h1 className="mb-8 font-display text-2xl font-bold text-text-primary sm:text-section">Checkout</h1>
       <CheckoutSteps current="checkout" />
 
       {submitError && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-900 dark:bg-red-950">
-          <p className="text-sm font-medium text-red-800 dark:text-red-200">{submitError}</p>
-          <p className="mt-1 text-xs text-red-600 dark:text-red-400">Your cart items have been preserved. You can fix the issue and retry.</p>
+        <div className="mb-6 rounded-xl border border-error bg-error/10 p-4">
+          <p className="text-sm font-semibold text-error">{submitError}</p>
+          <p className="mt-1 text-xs text-error opacity-90">Your cart items have been preserved. You can fix the issue and retry.</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-8">
         {/* Order summary - visible on mobile above the form, on desktop in right column */}
-        <div className="rounded-lg border border-gray-200 p-6 lg:hidden dark:border-gray-800 dark:bg-gray-900">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Your Order</h2>
+        <div className="rounded-xl border border-border bg-surface p-6 lg:hidden shadow-sm">
+          <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Your Order</h2>
 
-          <div className="mb-4 max-h-60 overflow-y-auto">
+          <div className="mb-4 max-h-60 overflow-y-auto thin-scrollbar">
             {items.map((item) => (
               <div key={item.product.id} className="mb-3 flex items-center gap-3">
-                <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-gray-100 dark:bg-gray-800">
+                <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-surface-elevated">
                   <ProductImage
                     src={item.product.imageUrl}
                     alt={item.product.name}
@@ -194,36 +194,36 @@ function CheckoutPage() {
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                  <p className="truncate text-sm font-semibold text-text-primary">
                     {item.product.name}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Qty: {item.quantity}</p>
+                  <p className="text-xs text-text-secondary">Qty: {item.quantity}</p>
                 </div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                <p className="text-sm font-bold text-text-primary">
                   {formatCurrency(item.product.price * item.quantity)}
                 </p>
               </div>
             ))}
           </div>
 
-          <div className="space-y-2 border-t border-gray-200 pt-4 dark:border-gray-800">
+          <div className="space-y-2 border-t border-border pt-4">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
-              <span className="font-medium">{formatCurrency(cartSummary.subtotal)}</span>
+              <span className="text-text-secondary">Subtotal</span>
+              <span className="font-semibold text-text-primary">{formatCurrency(cartSummary.subtotal)}</span>
             </div>
             {discount && (
               <div className="flex justify-between text-sm">
-                <span className="text-green-600 dark:text-green-400">
+                <span className="text-success font-semibold">
                   Discount ({discount.code})
                 </span>
-                <span className="font-medium text-green-600 dark:text-green-400">
+                <span className="font-semibold text-success">
                   &minus;{formatCurrency(discount.discountAmount)}
                 </span>
               </div>
             )}
-            <div className="flex justify-between border-t border-gray-200 pt-2 dark:border-gray-800">
-              <span className="font-semibold">Total</span>
-              <span className="text-lg font-bold">{formatCurrency(cartSummary.total)}</span>
+            <div className="flex justify-between border-t border-border pt-2">
+              <span className="font-semibold text-text-primary">Total</span>
+              <span className="text-lg font-bold text-accent">{formatCurrency(cartSummary.total)}</span>
             </div>
           </div>
         </div>
@@ -232,8 +232,8 @@ function CheckoutPage() {
           {/* Left column — forms */}
           <div className="flex-1 space-y-6">
             {/* Shipping address */}
-            <div className="rounded-lg border border-gray-200 p-6 dark:border-gray-800 dark:bg-gray-900">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Shipping Address</h2>
+            <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
+              <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Shipping Address</h2>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <Input
@@ -273,17 +273,17 @@ function CheckoutPage() {
                   autoComplete="address-level2"
                 />
                 <div className="flex flex-col gap-1">
-                  <label htmlFor="shipping-state" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <label htmlFor="shipping-state" className="text-sm font-medium text-text-secondary">
                     State
                   </label>
                   <select
                     id="shipping-state"
                     value={shipping.state}
                     onChange={(e) => updateShipping('state', e.target.value)}
-                    className={`rounded-lg border bg-white px-4 py-3 text-sm transition focus:outline-none focus:ring-1 min-h-[44px] dark:bg-gray-800 dark:text-gray-100 ${
+                    className={`rounded-lg border bg-surface-elevated px-4 py-3 text-sm text-text-primary transition focus:outline-none focus:ring-1 focus:ring-primary min-h-[44px] ${
                       shippingErrors.state
-                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:border-gray-900 focus:ring-gray-900 dark:border-gray-600 dark:focus:border-primary dark:focus:ring-primary'
+                        ? 'border-error focus:border-error focus:ring-error'
+                        : 'border-border focus:border-primary focus:ring-primary'
                     }`}
                     aria-label="State"
                   >
@@ -295,7 +295,7 @@ function CheckoutPage() {
                     ))}
                   </select>
                   {shippingErrors.state && (
-                    <p className="text-xs text-red-600 dark:text-red-400">{shippingErrors.state}</p>
+                    <p className="text-xs font-medium text-error">{shippingErrors.state}</p>
                   )}
                 </div>
                 <Input
@@ -321,35 +321,35 @@ function CheckoutPage() {
             </div>
 
             {/* Payment method */}
-            <div className="rounded-lg border border-gray-200 p-6 dark:border-gray-800 dark:bg-gray-900">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Payment Method</h2>
+            <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
+              <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Payment Method</h2>
               <div className="space-y-3">
-                <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-4 transition hover:bg-gray-50 has-[:checked]:border-gray-900 has-[:checked]:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 dark:has-[:checked]:border-primary dark:has-[:checked]:bg-gray-800">
+                <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-4 transition-all hover:bg-surface-elevated has-[:checked]:border-primary has-[:checked]:bg-primary/5">
                   <input
                     type="radio"
                     name="payment"
                     value="cod"
                     checked={paymentMethod === 'cod'}
                     onChange={() => setPaymentMethod('cod')}
-                    className="h-4 w-4 border-gray-300 text-primary focus:ring-primary dark:border-gray-500"
+                    className="h-4 w-4 border-border text-primary focus:ring-primary"
                   />
                   <div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">Cash on Delivery</span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Pay when your order arrives</p>
+                    <span className="text-sm font-semibold text-text-primary">Cash on Delivery</span>
+                    <p className="text-xs text-text-secondary">Pay when your order arrives</p>
                   </div>
                 </label>
-                <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-4 transition hover:bg-gray-50 has-[:checked]:border-gray-900 has-[:checked]:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 dark:has-[:checked]:border-primary dark:has-[:checked]:bg-gray-800">
+                <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-border p-4 transition-all hover:bg-surface-elevated has-[:checked]:border-primary has-[:checked]:bg-primary/5">
                   <input
                     type="radio"
                     name="payment"
                     value="mock_card"
                     checked={paymentMethod === 'mock_card'}
                     onChange={() => setPaymentMethod('mock_card')}
-                    className="h-4 w-4 border-gray-300 text-primary focus:ring-primary dark:border-gray-500"
+                    className="h-4 w-4 border-border text-primary focus:ring-primary"
                   />
                   <div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">Card Payment (Mock)</span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Simulated card payment for testing</p>
+                    <span className="text-sm font-semibold text-text-primary">Card Payment (Mock)</span>
+                    <p className="text-xs text-text-secondary">Simulated card payment for testing</p>
                   </div>
                 </label>
               </div>
@@ -358,13 +358,13 @@ function CheckoutPage() {
 
           {/* Right column — order summary (desktop only) */}
           <div className="hidden w-full lg:block lg:w-80 lg:flex-shrink-0">
-            <div className="sticky top-24 rounded-lg border border-gray-200 p-6 dark:border-gray-800 dark:bg-gray-900">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Your Order</h2>
+            <div className="sticky top-24 rounded-xl border border-border bg-surface p-6 shadow-sm">
+              <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Your Order</h2>
 
-              <div className="mb-4 max-h-60 overflow-y-auto">
+              <div className="mb-4 max-h-60 overflow-y-auto thin-scrollbar">
                 {items.map((item) => (
                   <div key={item.product.id} className="mb-3 flex items-center gap-3">
-                    <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-gray-100 dark:bg-gray-800">
+                    <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded bg-surface-elevated">
                       <ProductImage
                         src={item.product.imageUrl}
                         alt={item.product.name}
@@ -372,41 +372,41 @@ function CheckoutPage() {
                       />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                      <p className="truncate text-sm font-semibold text-text-primary">
                         {item.product.name}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Qty: {item.quantity}</p>
+                      <p className="text-xs text-text-secondary">Qty: {item.quantity}</p>
                     </div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    <p className="text-sm font-bold text-text-primary">
                       {formatCurrency(item.product.price * item.quantity)}
                     </p>
                   </div>
                 ))}
               </div>
 
-              <div className="space-y-2 border-t border-gray-200 pt-4 dark:border-gray-800">
+              <div className="space-y-2 border-t border-border pt-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
-                  <span className="font-medium">{formatCurrency(cartSummary.subtotal)}</span>
+                  <span className="text-text-secondary">Subtotal</span>
+                  <span className="font-semibold text-text-primary">{formatCurrency(cartSummary.subtotal)}</span>
                 </div>
                 {discount && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-green-600 dark:text-green-400">
+                    <span className="text-success font-semibold">
                       Discount ({discount.code})
                     </span>
-                    <span className="font-medium text-green-600 dark:text-green-400">
+                    <span className="font-semibold text-success">
                       &minus;{formatCurrency(discount.discountAmount)}
                     </span>
                   </div>
                 )}
-                <div className="flex justify-between border-t border-gray-200 pt-2 dark:border-gray-800">
-                  <span className="font-semibold">Total</span>
-                  <span className="text-lg font-bold">{formatCurrency(cartSummary.total)}</span>
+                <div className="flex justify-between border-t border-border pt-2">
+                  <span className="font-semibold text-text-primary">Total</span>
+                  <span className="text-lg font-bold text-accent">{formatCurrency(cartSummary.total)}</span>
                 </div>
               </div>
 
               {isCheckoutBlocked && checkoutBlockReason && (
-                <p className="mt-4 text-xs font-medium text-red-600 dark:text-red-400">
+                <p className="mt-4 text-xs font-semibold text-error">
                   {checkoutBlockReason}
                 </p>
               )}
@@ -428,7 +428,7 @@ function CheckoutPage() {
 
               <Link
                 to="/cart"
-                className="mt-3 block text-center text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                className="mt-3 block text-center text-sm font-semibold text-text-secondary hover:text-text-primary transition-colors"
               >
                 &larr; Back to Cart
               </Link>
@@ -437,13 +437,13 @@ function CheckoutPage() {
         </div>
 
         {/* Mobile sticky place order bar */}
-        <div className="sticky bottom-0 -mx-4 border-t border-gray-200 bg-white p-4 lg:hidden dark:border-gray-800 dark:bg-gray-900">
+        <div className="sticky bottom-0 -mx-4 border-t border-border bg-surface p-4 lg:hidden shadow-lg z-20">
           <div className="mb-2 flex items-center justify-between">
-            <span className="font-semibold text-gray-900 dark:text-white">Total</span>
-            <span className="text-lg font-bold text-gray-900 dark:text-white">{formatCurrency(cartSummary.total)}</span>
+            <span className="font-semibold text-text-primary">Total</span>
+            <span className="text-lg font-bold text-accent">{formatCurrency(cartSummary.total)}</span>
           </div>
           {isCheckoutBlocked && checkoutBlockReason && (
-            <p className="mb-2 text-xs font-medium text-red-600 dark:text-red-400">
+            <p className="mb-2 text-xs font-semibold text-error">
               {checkoutBlockReason}
             </p>
           )}
@@ -463,7 +463,7 @@ function CheckoutPage() {
           </Button>
           <Link
             to="/cart"
-            className="mt-2 block text-center text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+            className="mt-2 block text-center text-sm font-semibold text-text-secondary hover:text-text-primary transition-colors"
           >
             &larr; Back to Cart
           </Link>

@@ -13,19 +13,19 @@ const RESULTS_PER_PAGE = 12
 const METHOD_BADGES: Partial<Record<SearchMethod, { label: string; classes: string }>> = {
   text: {
     label: 'Full-text match',
-    classes: 'bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-200',
+    classes: 'bg-primary/10 text-primary',
   },
   fuzzy: {
     label: 'Fuzzy match',
-    classes: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200',
+    classes: 'bg-warning/10 text-warning',
   },
   regex: {
     label: 'Partial match',
-    classes: 'bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-200',
+    classes: 'bg-accent/10 text-accent',
   },
   vector: {
     label: 'Semantic match',
-    classes: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200',
+    classes: 'bg-success/10 text-success',
   },
 }
 
@@ -89,20 +89,22 @@ function SearchResultsPage() {
     <div className="mx-auto max-w-7xl px-4 py-8">
       <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">
+          <h1 className="font-display text-2xl font-bold text-text-primary sm:text-section">
             {query.trim() ? (
               <>Showing results for &lsquo;{query.trim()}&rsquo;</>
             ) : (
               'Search Products'
             )}
           </h1>
-          <p className="mt-1 flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
-            <svg className="h-3.5 w-3.5 text-violet-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
-            Full-text search with typo tolerance
+          <p className="mt-1.5 flex items-center flex-wrap gap-2 text-sm text-text-secondary">
+            <span className="flex items-center gap-1.5">
+              <svg className="h-4 w-4 text-primary" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+              </svg>
+              AI-driven search with typo tolerance
+            </span>
             {methodBadge && (
-              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${methodBadge.classes}`}>
+              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${methodBadge.classes}`}>
                 {methodBadge.label}
               </span>
             )}
@@ -119,23 +121,23 @@ function SearchResultsPage() {
           </ErrorMessage>
         </div>
       ) : !query.trim() ? (
-        <div className="py-12 text-center">
-          <p className="mb-2 text-lg font-medium text-gray-900 dark:text-white">Enter a search term</p>
-          <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+        <div className="py-12 text-center bg-surface border border-border rounded-xl">
+          <p className="mb-2 text-lg font-medium text-text-primary">Enter a search term</p>
+          <p className="mb-4 text-sm text-text-secondary">
             Try describing what you&rsquo;re looking for, e.g. &ldquo;warm winter jacket&rdquo;
           </p>
           <Link
             to="/"
-            className="text-sm font-medium text-gray-900 underline hover:text-gray-600 dark:text-white dark:hover:text-gray-300"
+            className="text-sm font-medium text-primary underline hover:text-primary-hover"
           >
             Browse all products
           </Link>
         </div>
       ) : products.length === 0 ? (
         <div className="py-12">
-          <div className="mb-8 text-center">
+          <div className="mb-8 text-center bg-surface border border-border rounded-xl p-8">
             <svg
-              className="mx-auto mb-4 h-12 w-12 text-gray-300 dark:text-gray-600"
+              className="mx-auto mb-4 h-12 w-12 text-text-secondary/40"
               fill="none"
               viewBox="0 0 24 24"
               strokeWidth={1.5}
@@ -143,10 +145,10 @@ function SearchResultsPage() {
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
-            <p className="mb-2 text-lg font-medium text-gray-900 dark:text-white">
+            <p className="mb-2 text-lg font-medium text-text-primary">
               No products found for &lsquo;{query.trim()}&rsquo;
             </p>
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">
+            <p className="mb-6 text-sm text-text-secondary">
               Try rephrasing your search or check out some suggestions below.
             </p>
             <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
@@ -166,22 +168,22 @@ function SearchResultsPage() {
           </div>
 
           <div>
-            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Popular Products</h2>
+            <h2 className="mb-4 font-display text-lg font-semibold text-text-primary">Popular Products</h2>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {popularProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+              {popularProducts.map((product, index) => (
+                <ProductCard key={product.id} product={product} index={index} />
               ))}
             </div>
           </div>
         </div>
       ) : (
         <>
-          <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mb-4 text-sm text-text-secondary">
             {total} {total === 1 ? 'result' : 'results'} found
           </p>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+            {products.map((product, index) => (
+              <ProductCard key={product.id} product={product} index={index} />
             ))}
           </div>
           <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
