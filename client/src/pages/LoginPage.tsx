@@ -113,13 +113,12 @@ export default function LoginPage() {
             error={passwordError}
           />
           <div className="flex items-center justify-end">
-            <button
-              type="button"
-              onClick={() => showToast('Password reset is not available in this demo. Please contact support@shopnest.com.', 'info')}
-              className="text-sm font-medium text-gray-600 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+            <Link
+              to="/forgot-password"
+              className="text-sm font-medium text-text-secondary transition hover:text-primary"
             >
               Forgot password?
-            </button>
+            </Link>
           </div>
           <Button type="submit" disabled={!isFormValid || submitting} className="mt-2">
             {submitting ? 'Signing In...' : 'Sign In'}

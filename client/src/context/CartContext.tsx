@@ -19,6 +19,7 @@ import {
   applyDiscountBackend,
   removeDiscountBackend,
 } from '../services/cartService'
+import { loadCartFromStorage, saveCartToStorage, clearCartStorage } from '../utils/cartStorage'
 
 export interface CartContextValue {
   items: CartItem[]
@@ -72,7 +73,7 @@ function getCheckoutBlockReason(items: CartItem[]): string | null {
 }
 
 export function CartProvider({ children }: CartProviderProps) {
-  const [items, setItems] = useState<CartItem[]>([])
+  const [items, setItems] = useState<CartItem[]>(() => loadCartFromStorage())
   const [isLoading, setIsLoading] = useState(true)
   const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set())
   const [discount, setDiscount] = useState<DiscountCode | null>(null)
@@ -164,8 +165,14 @@ export function CartProvider({ children }: CartProviderProps) {
   const clearCart = useCallback(() => {
     setItems([])
     setDiscount(null)
+    clearCartStorage()
     syncCartToBackend([]).catch(() => {})
   }, [])
+
+  // Persist the cart across page refreshes / sessions (frontend-only cart).
+  useEffect(() => {
+    saveCartToStorage(items)
+  }, [items])
 
   const applyDiscountCode = useCallback(async (code: string) => {
     setDiscountError(null)

@@ -1,9 +1,27 @@
-import type { Product, ProductPayload, PaginatedResponse, SearchResponse, ProductQueryParams } from '../types'
+import type {
+  Product,
+  ProductPayload,
+  PaginatedResponse,
+  SearchResponse,
+  SearchSuggestionsResponse,
+  TrendingSearch,
+  CategoryCount,
+  SearchSort,
+  ProductQueryParams,
+} from '../types'
 import { apiClient } from './apiClient'
 
 export async function searchProducts(
   query: string,
-  params: { page?: number; limit?: number } = {},
+  params: {
+    page?: number
+    limit?: number
+    category?: string
+    minPrice?: number
+    maxPrice?: number
+    inStock?: boolean
+    sort?: SearchSort
+  } = {},
 ): Promise<SearchResponse> {
   if (!query.trim()) {
     return getProducts(params)
@@ -25,6 +43,27 @@ export async function searchProducts(
   }
 }
 
+export async function getSearchSuggestions(query: string): Promise<SearchSuggestionsResponse> {
+  const { data } = await apiClient.get<SearchSuggestionsResponse>('/search/suggest', {
+    params: { q: query },
+  })
+  return {
+    queries: data.queries ?? [],
+    products: data.products ?? [],
+    categories: data.categories ?? [],
+  }
+}
+
+export async function getTrendingSearches(): Promise<TrendingSearch[]> {
+  const { data } = await apiClient.get<{ terms?: TrendingSearch[] }>('/search/trending')
+  return data.terms ?? []
+}
+
+export async function getCategories(): Promise<CategoryCount[]> {
+  const { data } = await apiClient.get<{ categories?: CategoryCount[] }>('/products/categories')
+  return data.categories ?? []
+}
+
 interface ProductResponse {
   id?: string
   _id?: string
@@ -34,9 +73,11 @@ interface ProductResponse {
   imageUrl: string
   category: string
   stock?: number
+  rating?: number
+  numReviews?: number
 }
 
-function normalizeProduct(raw: ProductResponse): Product {
+export function normalizeProduct(raw: ProductResponse): Product {
   const id = raw.id ?? raw._id ?? ''
   return {
     id,
@@ -46,6 +87,8 @@ function normalizeProduct(raw: ProductResponse): Product {
     imageUrl: raw.imageUrl ?? 'https://placehold.co/200x200?text=Product',
     category: raw.category ?? '',
     stock: raw.stock,
+    rating: raw.rating,
+    numReviews: raw.numReviews,
   }
 }
 

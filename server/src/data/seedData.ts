@@ -17,6 +17,7 @@ export interface SeedUser {
   email: string;
   password: string;
   role: "customer" | "admin";
+  emailVerified?: boolean;
 }
 
 const img = (id: string): string =>
@@ -36,8 +37,8 @@ export const categories = [
 ];
 
 export const seedUsers: SeedUser[] = [
-  { name: "Admin User", email: "admin@example.com", password: "admin123", role: "admin" },
-  { name: "Jane Customer", email: "customer@example.com", password: "customer123", role: "customer" },
+  { name: "Admin User", email: "admin@example.com", password: "admin123", role: "admin", emailVerified: true },
+  { name: "Jane Customer", email: "customer@example.com", password: "customer123", role: "customer", emailVerified: true },
 ];
 
 export const productData: SeedProduct[] = [

@@ -1,5 +1,13 @@
 import mongoose, { Document, Schema, Types } from "mongoose";
 
+export type OrderStatus = "pending" | "confirmed" | "shipped" | "delivered" | "cancelled";
+
+export interface IOrderStatusEntry {
+  status: OrderStatus;
+  at: Date;
+  note?: string;
+}
+
 export interface IOrderItem {
   product: Types.ObjectId;
   name: string;
@@ -21,9 +29,19 @@ export interface IOrder extends Document {
   subtotal: number;
   discount: number;
   total: number;
-  status: "pending" | "confirmed" | "shipped" | "delivered";
+  status: OrderStatus;
+  statusHistory: IOrderStatusEntry[];
+  trackingNumber?: string;
   createdAt: Date;
 }
+
+const ORDER_STATUSES: OrderStatus[] = [
+  "pending",
+  "confirmed",
+  "shipped",
+  "delivered",
+  "cancelled",
+];
 
 const orderSchema = new Schema<IOrder>(
   {
@@ -49,9 +67,22 @@ const orderSchema = new Schema<IOrder>(
     total: { type: Number, required: true, min: 0 },
     status: {
       type: String,
-      enum: ["pending", "confirmed", "shipped", "delivered"],
+      enum: ORDER_STATUSES,
       default: "pending",
     },
+    // Append-only per-order timeline shown to the customer on order detail.
+    statusHistory: {
+      type: [
+        {
+          status: { type: String, enum: ORDER_STATUSES, required: true },
+          at: { type: Date, required: true },
+          note: { type: String },
+        },
+      ],
+      default: [],
+    },
+    // Carrier tracking number set by an admin when the order ships.
+    trackingNumber: { type: String },
   },
   {
     timestamps: true,

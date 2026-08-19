@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getAdminOrderById, updateOrderStatus } from '../../services/adminService'
+import { getAdminOrderById, updateOrderStatus, updateOrderTracking } from '../../services/adminService'
 import { useToast } from '../../hooks/useToast'
 import { formatCurrency } from '../../utils/formatCurrency'
 import type { AdminOrder, OrderStatus } from '../../types'
@@ -14,6 +14,7 @@ const STATUS_STYLES: Record<OrderStatus, string> = {
   confirmed: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
   delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  cancelled: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
 }
 
 const STATUS_OPTIONS: OrderStatus[] = [
@@ -21,6 +22,7 @@ const STATUS_OPTIONS: OrderStatus[] = [
   'confirmed',
   'shipped',
   'delivered',
+  'cancelled',
 ]
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -36,6 +38,8 @@ export default function AdminOrderDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updating, setUpdating] = useState(false)
+  const [tracking, setTracking] = useState('')
+  const [savingTracking, setSavingTracking] = useState(false)
 
   const fetchOrder = useCallback(async () => {
     if (!orderId) return
@@ -44,6 +48,7 @@ export default function AdminOrderDetailPage() {
       setError('')
       const data = await getAdminOrderById(orderId)
       setOrder(data)
+      setTracking(data.trackingNumber ?? '')
     } catch {
       setError('Unable to load order details.')
     } finally {
@@ -57,6 +62,9 @@ export default function AdminOrderDetailPage() {
 
   async function handleStatusChange(newStatus: OrderStatus) {
     if (!order || newStatus === order.status) return
+    if (newStatus === 'cancelled' && !window.confirm('Cancel this order? Reserved stock will be returned to the store.')) {
+      return
+    }
     setUpdating(true)
     try {
       const updated = await updateOrderStatus(order.id, newStatus)
@@ -66,6 +74,21 @@ export default function AdminOrderDetailPage() {
       showToast('Failed to update order status', 'error')
     } finally {
       setUpdating(false)
+    }
+  }
+
+  async function handleSaveTracking() {
+    if (!order) return
+    setSavingTracking(true)
+    try {
+      const updated = await updateOrderTracking(order.id, tracking.trim())
+      setOrder(updated)
+      setTracking(updated.trackingNumber ?? '')
+      showToast(updated.trackingNumber ? 'Tracking number saved' : 'Tracking number cleared')
+    } catch {
+      showToast('Failed to save tracking number', 'error')
+    } finally {
+      setSavingTracking(false)
     }
   }
 
@@ -150,6 +173,34 @@ export default function AdminOrderDetailPage() {
           </select>
           {updating && <span className="text-sm text-gray-500 dark:text-gray-400">Updating...</span>}
         </div>
+      </div>
+
+      {/* Tracking Number */}
+      <div className="mb-6 rounded-lg border border-gray-200 p-4 dark:border-gray-800 dark:bg-gray-900">
+        <label htmlFor="tracking-input" className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">
+          Carrier Tracking Number
+        </label>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <input
+            id="tracking-input"
+            type="text"
+            value={tracking}
+            onChange={(e) => setTracking(e.target.value)}
+            maxLength={100}
+            placeholder="e.g. 1Z999AA10123456784"
+            className="min-h-[44px] flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-primary dark:focus:ring-primary"
+          />
+          <Button
+            onClick={handleSaveTracking}
+            disabled={savingTracking}
+            className="px-4 py-2 text-xs"
+          >
+            {savingTracking ? 'Saving...' : 'Save Tracking'}
+          </Button>
+        </div>
+        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          The customer sees the tracking number on their order page. Saving with an empty field clears it.
+        </p>
       </div>
 
       <div className="space-y-6">

@@ -1,11 +1,32 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Document, Schema, Types } from "mongoose";
 import bcrypt from "bcrypt";
+
+export interface IUserAddress {
+  _id: Types.ObjectId;
+  label: string;
+  fullName: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  phone?: string;
+  isDefault: boolean;
+}
 
 export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
   role: "customer" | "admin";
+  emailVerified: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
+  passwordResetToken?: string;
+  passwordResetExpires?: Date;
+  refreshToken?: string;
+  refreshTokenExpires?: Date;
+  addresses: mongoose.Types.DocumentArray<IUserAddress>;
   createdAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
@@ -26,6 +47,29 @@ const userSchema = new Schema<IUser>(
       enum: ["customer", "admin"],
       default: "customer",
     },
+    emailVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String },
+    emailVerificationExpires: { type: Date },
+    passwordResetToken: { type: String },
+    passwordResetExpires: { type: Date },
+    refreshToken: { type: String },
+    refreshTokenExpires: { type: Date },
+    addresses: {
+      type: [
+        {
+          label: { type: String, required: true, trim: true },
+          fullName: { type: String, required: true, trim: true },
+          addressLine1: { type: String, required: true, trim: true },
+          addressLine2: { type: String, trim: true },
+          city: { type: String, required: true, trim: true },
+          state: { type: String, required: true, trim: true },
+          postalCode: { type: String, required: true, trim: true },
+          phone: { type: String, trim: true },
+          isDefault: { type: Boolean, default: false },
+        },
+      ],
+      default: [],
+    },
   },
   {
     timestamps: true,
@@ -35,6 +79,12 @@ const userSchema = new Schema<IUser>(
         obj.id = obj._id?.toString();
         delete obj.__v;
         delete obj.password;
+        delete obj.emailVerificationToken;
+        delete obj.emailVerificationExpires;
+        delete obj.passwordResetToken;
+        delete obj.passwordResetExpires;
+        delete obj.refreshToken;
+        delete obj.refreshTokenExpires;
         return obj;
       },
     },

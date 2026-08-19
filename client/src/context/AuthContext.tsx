@@ -9,13 +9,14 @@ export interface AuthContextValue {
   login: (email: string, password: string) => Promise<boolean>
   register: (name: string, email: string, password: string) => Promise<boolean>
   logout: () => void
+  refreshUser: () => Promise<void>
   authError: string | null
   clearError: () => void
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
 
-function parseJwtPayload(token: string): { id: string; name: string; email: string; role: 'admin' | 'customer' } | null {
+function parseJwtPayload(token: string): User | null {
   try {
     const base64 = token.split('.')[1]
     const payload = JSON.parse(atob(base64))
@@ -29,6 +30,7 @@ function parseJwtPayload(token: string): { id: string; name: string; email: stri
       name: payload.name ?? '',
       email: payload.email ?? '',
       role: payload.role ?? 'customer',
+      emailVerified: payload.emailVerified ?? undefined,
     }
   } catch {
     return null
@@ -54,6 +56,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [authError, setAuthError] = useState<string | null>(null)
 
   const isAuthenticated = user !== null
+
+  // Hydrate the full user profile (name, emailVerified, ...) from /auth/me when
+  // a token exists — e.g. after a page refresh, where only the JWT was cached.
+  useEffect(() => {
+    const token = localStorage.getItem('jwt_token')
+    if (!token) return
+
+    let cancelled = false
+    authService
+      .getMe()
+      .then((profile) => {
+        if (!cancelled) setUser(profile)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          clearAuthToken()
+          setUser(null)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -93,7 +118,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [])
 
+  const refreshUser = useCallback(async (): Promise<void> => {
+    try {
+      const profile = await authService.getMe()
+      setUser(profile)
+    } catch {
+      // Keep current user; a failed refresh is non-fatal for the UI.
+    }
+  }, [])
+
   const logout = useCallback(() => {
+    // Best-effort server-side cookie invalidation, then local cleanup.
+    void authService.logout()
     clearAuthToken()
     setUser(null)
   }, [])
@@ -103,8 +139,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const value = useMemo(
-    () => ({ user, isAuthenticated, login, register, logout, authError, clearError }),
-    [user, isAuthenticated, login, register, logout, authError, clearError],
+    () => ({ user, isAuthenticated, login, register, logout, refreshUser, authError, clearError }),
+    [user, isAuthenticated, login, register, logout, refreshUser, authError, clearError],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

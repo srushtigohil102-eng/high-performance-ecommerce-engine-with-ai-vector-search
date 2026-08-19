@@ -5,7 +5,9 @@ import type { AdminDashboardStats } from '../../types'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import ErrorMessage from '../../components/ErrorMessage'
 import Button from '../../components/Button'
+import OrderStatusBadge from '../../components/OrderStatusBadge'
 import { formatCurrency } from '../../utils/formatCurrency'
+import { formatDateTime } from '../../utils/formatDateTime'
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminDashboardStats | null>(null)
@@ -52,6 +54,105 @@ export default function AdminDashboardPage() {
           </div>
         ))}
       </div>
+
+      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Top selling products */}
+        <section className="rounded-lg border border-gray-200 dark:border-gray-800">
+          <h2 className="border-b border-gray-200 px-5 py-4 text-lg font-semibold text-gray-900 dark:border-gray-800 dark:text-white">
+            Top Selling Products
+          </h2>
+          {stats.topProducts.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-gray-500 dark:text-gray-400">No sales yet.</p>
+          ) : (
+            <ul className="divide-y divide-gray-200 dark:divide-gray-800">
+              {stats.topProducts.map((product, index) => (
+                <li key={product.name} className="flex items-center gap-4 px-5 py-3">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{product.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {product.quantitySold} sold &middot; {formatCurrency(product.revenue)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* Low stock */}
+        <section className="rounded-lg border border-gray-200 dark:border-gray-800">
+          <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Low Stock Items</h2>
+            <Link to="/admin/products" className="text-sm font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+              Manage products
+            </Link>
+          </div>
+          {stats.lowStockList.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-gray-500 dark:text-gray-400">All products have healthy stock.</p>
+          ) : (
+            <ul className="divide-y divide-gray-200 dark:divide-gray-800">
+              {stats.lowStockList.map((product) => (
+                <li key={product.id} className="flex items-center gap-3 px-5 py-3">
+                  {product.imageUrl ? (
+                    <img
+                      src={product.imageUrl}
+                      alt={product.name}
+                      className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 shrink-0 rounded-lg bg-gray-100 dark:bg-gray-800" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{product.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{formatCurrency(product.price)}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${product.stock === 0 ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'}`}>
+                    {product.stock === 0 ? 'Out of stock' : `${product.stock} left`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+
+      {/* Recent orders */}
+      <section className="mb-8 rounded-lg border border-gray-200 dark:border-gray-800">
+        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4 dark:border-gray-800">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Orders</h2>
+          <Link to="/admin/orders" className="text-sm font-medium text-gray-500 transition hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+            View all orders
+          </Link>
+        </div>
+        {stats.recentOrders.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-gray-500 dark:text-gray-400">No orders yet.</p>
+        ) : (
+          <ul className="divide-y divide-gray-200 dark:divide-gray-800">
+            {stats.recentOrders.map((order) => (
+              <li key={order.id}>
+                <Link
+                  to={`/admin/orders/${order.id}`}
+                  className="flex flex-col gap-2 px-5 py-3 transition hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between dark:hover:bg-gray-900"
+                >
+                  <div className="flex items-center gap-3">
+                    <p className="font-mono font-bold text-gray-900 dark:text-white">#{order.id}</p>
+                    <OrderStatusBadge status={order.status} />
+                  </div>
+                  <div className="sm:text-right">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{order.customerName}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {order.customerEmail} &middot; {formatDateTime(order.createdAt)} &middot; {formatCurrency(order.total)}
+                    </p>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Quick Links</h2>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

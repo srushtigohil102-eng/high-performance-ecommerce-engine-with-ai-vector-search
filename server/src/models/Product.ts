@@ -7,6 +7,8 @@ export interface IProduct extends Document {
   category: string;
   imageUrl: string;
   stock: number;
+  rating: number;
+  numReviews: number;
   embedding?: number[];
   createdAt: Date;
 }
@@ -19,6 +21,10 @@ const productSchema = new Schema<IProduct>(
     category: { type: String, required: true, trim: true, index: true },
     imageUrl: { type: String, default: "" },
     stock: { type: Number, required: true, min: 0, default: 0 },
+    // Rolling aggregate maintained by the review controller so list/detail
+    // responses can show a rating with no per-request aggregation.
+    rating: { type: Number, default: 0, min: 0, max: 5 },
+    numReviews: { type: Number, default: 0, min: 0 },
     embedding: { type: [Number], default: undefined },
   },
   {

@@ -1,5 +1,13 @@
 import { apiClient } from './apiClient'
-import type { PlaceOrderPayload, Order, OrderItem, ShippingAddress, PaymentMethod, OrderStatus } from '../types'
+import type {
+  PlaceOrderPayload,
+  Order,
+  OrderItem,
+  OrderStatusHistoryEntry,
+  ShippingAddress,
+  PaymentMethod,
+  OrderStatus,
+} from '../types'
 
 interface RawOrderItem {
   productId?: string
@@ -46,6 +54,13 @@ interface RawOrder {
   discountCode?: string
   discount_code?: string
   status?: string
+  statusHistory?: {
+    status?: string
+    at?: string
+    note?: string
+  }[]
+  trackingNumber?: string
+  tracking_number?: string
   createdAt?: string
   created_at?: string
   createdOn?: string
@@ -102,6 +117,14 @@ function normalizeOrder(raw: RawOrder): Order {
     console.warn('[orderService] Order missing id field, response shape may have changed:', raw)
   }
 
+  const statusHistory: OrderStatusHistoryEntry[] = (raw.statusHistory ?? [])
+    .filter((entry) => entry && entry.status)
+    .map((entry) => ({
+      status: entry.status as OrderStatus,
+      at: entry.at ?? new Date().toISOString(),
+      note: entry.note,
+    }))
+
   return {
     id,
     items: (raw.items ?? []).map(normalizeOrderItem),
@@ -112,6 +135,8 @@ function normalizeOrder(raw: RawOrder): Order {
     total: typeof raw.total === 'number' ? raw.total : 0,
     discountCode: raw.discountCode ?? raw.discount_code ?? null,
     status,
+    statusHistory,
+    trackingNumber: raw.trackingNumber ?? raw.tracking_number ?? null,
     createdAt,
   }
 }
@@ -179,4 +204,14 @@ export async function getOrderById(orderId: string): Promise<Order> {
 export async function getOrders(): Promise<Order[]> {
   const { data } = await apiClient.get('/orders')
   return unwrapOrdersResponse(data)
+}
+
+export async function cancelOrder(orderId: string): Promise<Order> {
+  const { data } = await apiClient.post(`/orders/${orderId}/cancel`)
+  return unwrapOrderResponse(data)
+}
+
+export async function reorder(orderId: string): Promise<Order> {
+  const { data } = await apiClient.post(`/orders/${orderId}/reorder`)
+  return unwrapOrderResponse(data)
 }

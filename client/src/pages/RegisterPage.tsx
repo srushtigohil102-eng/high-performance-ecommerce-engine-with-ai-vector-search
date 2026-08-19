@@ -75,7 +75,7 @@ export default function RegisterPage() {
     try {
       const success = await register(name, email, password)
       if (success) {
-        showToast('Account created — you are now signed in')
+        showToast('Account created — check the server console for your email verification link.', 'info')
       }
     } finally {
       setSubmitting(false)
