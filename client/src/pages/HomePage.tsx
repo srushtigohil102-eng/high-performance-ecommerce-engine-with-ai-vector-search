@@ -5,6 +5,7 @@ import ProductGridSkeleton from '../components/ProductGridSkeleton'
 import ErrorMessage from '../components/ErrorMessage'
 import Button from '../components/Button'
 import Pagination from '../components/Pagination'
+import CategoryShowcase from '../components/CategoryShowcase'
 import type { Product } from '../types'
 import { getProducts } from '../services/productService'
 
@@ -23,8 +24,6 @@ export default function HomePage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [total, setTotal] = useState(0)
-
-  const [categories, setCategories] = useState<string[]>([])
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -45,16 +44,6 @@ export default function HomePage() {
     }
   }, [page, category])
 
-  // Fetch unique categories once on mount
-  useEffect(() => {
-    getProducts({ limit: 200 })
-      .then((result) => {
-        const cats = [...new Set(result.products.map((p) => p.category))].sort()
-        setCategories(cats)
-      })
-      .catch(() => {})
-  }, [])
-
   useEffect(() => {
     fetchProducts()
   }, [fetchProducts])
@@ -63,14 +52,6 @@ export default function HomePage() {
   useEffect(() => {
     setPage(1)
   }, [category])
-
-  const handleCategoryChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const value = e.target.value
-      setSearchParams(value ? { category: value } : {}, { replace: true })
-    },
-    [setSearchParams],
-  )
 
   const handleHeroSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -137,26 +118,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="font-display text-2xl font-bold text-text-primary sm:text-section">Products</h2>
+      {/* Shop by Category — icon cards linked to Home filtered by category */}
+      <CategoryShowcase />
 
-        {/* Category filter */}
-        <div className="w-full sm:w-auto">
-          <select
-            value={category}
-            onChange={handleCategoryChange}
-            className="w-full rounded-lg border border-border bg-surface px-4 py-2.5 text-sm text-text-primary transition focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary min-h-[44px] sm:w-auto"
-            aria-label="Filter by category"
-          >
-            <option value="">All Categories</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <h2 className="mb-4 font-display text-2xl font-bold text-text-primary sm:text-section">Products</h2>
 
       {/* Results count */}
       {!loading && (
