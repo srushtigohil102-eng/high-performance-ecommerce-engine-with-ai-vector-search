@@ -1,26 +1,69 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
-import { Order, IOrderItem } from "../models/Order";
+import { Order, IOrderItem, IOrder, OrderStatus } from "../models/Order";
 import { Product } from "../models/Product";
 import { DiscountCode } from "../models/DiscountCode";
 import { User } from "../models/User";
-import { getRedisClient } from "../config/redis";
+import type { IUser } from "../models/User";
+import { invalidateProductCache, PRODUCT_CACHE_PATTERNS } from "../utils/cache";
+import { logAudit } from "../utils/audit";
+import {
+  sendOrderConfirmationEmail,
+  sendOrderStatusUpdateEmail,
+} from "../services/emailService";
 
-const invalidateProductCache = async (productIds: string[] = []): Promise<void> => {
+// Fire-and-forget customer email helper — SMTP failures are logged inside the
+// email service and must never fail the order flow that triggered the email.
+const notifyOrderCustomer = async (
+  userId: string,
+  order: IOrder,
+  fn: (user: IUser, order: IOrder) => Promise<void>
+): Promise<void> => {
   try {
-    const redis = getRedisClient();
-    const patterns = [
-      "products:list:*",
-      "search:*",
-      ...productIds.map((id) => `products:item:${id}`),
-    ];
-    for (const pattern of patterns) {
-      const keys = await redis.keys(pattern);
-      if (keys.length > 0) await redis.del(keys);
-    }
-  } catch {
-    // Redis unavailable
+    const user = await User.findById(userId);
+    if (user) await fn(user, order);
+  } catch (error) {
+    console.error("[email] Failed to notify customer:", error);
   }
+};
+
+// A cancelled order releases the items it claimed back into stock and drops
+// cached product/search responses so the restore is visible immediately.
+const restoreOrderStock = async (order: IOrder): Promise<void> => {
+  const bulkOps = order.items.map((item) => ({
+    updateOne: {
+      filter: { _id: item.product },
+      update: { $inc: { stock: item.quantity } },
+    },
+  }));
+  await Product.bulkWrite(bulkOps);
+  await invalidateProductCache([
+    ...PRODUCT_CACHE_PATTERNS,
+    ...order.items.map((item: IOrderItem) => `products:item:${item.product.toString()}`),
+  ]);
+};
+
+// Append to the per-order timeline and set the current status in one step.
+const pushStatus = (order: IOrder, status: OrderStatus, note?: string): void => {
+  order.status = status;
+  order.statusHistory.push({ status, at: new Date(), note });
+};
+
+const auditOrderChange = (
+  req: AuthRequest,
+  action: "order.status_changed" | "order.tracking_updated",
+  resourceId: string,
+  details: Record<string, unknown>
+): void => {
+  void logAudit({
+    action,
+    resource: "order",
+    resourceId,
+    details,
+    actor: req.user?._id,
+    ip: req.ip,
+    userAgent: req.get("user-agent"),
+  });
 };
 
 // POST /api/orders — create order (checkout)
@@ -127,10 +170,17 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       discount,
       total,
       status: "pending",
+      statusHistory: [{ status: "pending", at: new Date() }],
     });
 
     // Invalidate product caches (stock changed)
-    await invalidateProductCache(productIds);
+    await invalidateProductCache([
+      ...PRODUCT_CACHE_PATTERNS,
+      ...productIds.map((id: string) => `products:item:${id}`),
+    ]);
+
+    // Order confirmation email — never blocks order creation.
+    void notifyOrderCustomer(order.user.toString(), order, sendOrderConfirmationEmail);
 
     res.status(201).json(order);
   } catch (error) {
@@ -188,7 +238,8 @@ export const getAllOrders = async (req: AuthRequest, res: Response): Promise<voi
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
     const skip = (page - 1) * limit;
 
-    const status = req.query.status as string | undefined;
+    const status =
+      typeof req.query.status === "string" ? (req.query.status as string) : undefined;
     const filter = status ? { status } : {};
 
     const [orders, total] = await Promise.all([
@@ -219,7 +270,13 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response): Promis
   try {
     const { status } = req.body;
 
-    const validStatuses = ["pending", "confirmed", "shipped", "delivered"];
+    const validStatuses: OrderStatus[] = [
+      "pending",
+      "confirmed",
+      "shipped",
+      "delivered",
+      "cancelled",
+    ];
     if (!status || !validStatuses.includes(status)) {
       res.status(400).json({
         message: `Status must be one of: ${validStatuses.join(", ")}`,
@@ -227,20 +284,208 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response): Promis
       return;
     }
 
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
-
+    const order = await Order.findById(req.params.id);
     if (!order) {
       res.status(404).json({ message: "Order not found" });
       return;
     }
 
+    const previousStatus = order.status;
+    if (previousStatus === status) {
+      res.json(order);
+      return;
+    }
+
+    // Cancellation is irreversible and releases the reserved stock.
+    if (status === "cancelled") {
+      await restoreOrderStock(order);
+    }
+
+    pushStatus(order, status as OrderStatus);
+    await order.save();
+
+    auditOrderChange(req, "order.status_changed", order.id, {
+      from: previousStatus,
+      to: status,
+    });
+
+    // Notify the customer about the status change (admin flow).
+    void notifyOrderCustomer(order.user.toString(), order, (u, o) =>
+      sendOrderStatusUpdateEmail(u, o, status as OrderStatus)
+    );
+
     res.json(order);
   } catch (error) {
     console.error("Error updating order status:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// POST /api/orders/:id/cancel — cancel own order while pending/confirmed
+export const cancelOrder = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      res.status(404).json({ message: "Order not found" });
+      return;
+    }
+
+    // Owner or admin may cancel.
+    if (order.user.toString() !== req.user!._id && req.user!.role !== "admin") {
+      res.status(403).json({ message: "Access denied" });
+      return;
+    }
+
+    if (order.status === "cancelled") {
+      res.json(order);
+      return;
+    }
+
+    if (order.status !== "pending" && order.status !== "confirmed") {
+      res.status(400).json({
+        message: `Orders in "${order.status}" status cannot be cancelled`,
+      });
+      return;
+    }
+
+    await restoreOrderStock(order);
+    pushStatus(
+      order,
+      "cancelled",
+      req.user!.role === "admin" ? "Cancelled by admin" : "Cancelled by customer"
+    );
+    await order.save();
+
+    auditOrderChange(req, "order.status_changed", order.id, {
+      from: order.statusHistory[order.statusHistory.length - 2]?.status ?? order.status,
+      to: "cancelled",
+    });
+
+    // Notify the customer that their order was cancelled.
+    void notifyOrderCustomer(order.user.toString(), order, (u, o) =>
+      sendOrderStatusUpdateEmail(u, o, "cancelled")
+    );
+
+    res.json(order);
+  } catch (error) {
+    console.error("Error cancelling order:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// POST /api/orders/:id/reorder — place a new order from a previous one
+export const reorder = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const source = await Order.findById(req.params.id);
+    if (!source) {
+      res.status(404).json({ message: "Order not found" });
+      return;
+    }
+
+    // Owner or admin may reorder.
+    if (source.user.toString() !== req.user!._id && req.user!.role !== "admin") {
+      res.status(403).json({ message: "Access denied" });
+      return;
+    }
+
+    const productIds = source.items.map((item: IOrderItem) => item.product.toString());
+    const products = await Product.find({ _id: { $in: productIds } });
+
+    if (products.length !== productIds.length) {
+      res.status(400).json({ message: "One or more products are no longer available" });
+      return;
+    }
+
+    const orderItems: IOrderItem[] = [];
+    let subtotal = 0;
+
+    for (const item of source.items) {
+      const product = products.find(
+        (p) => p._id.toString() === item.product.toString()
+      );
+      if (!product) {
+        res.status(400).json({ message: `Product ${item.product} not found` });
+        return;
+      }
+      if (product.stock < item.quantity) {
+        res.status(400).json({
+          message: `Insufficient stock for "${product.name}". Available: ${product.stock}, requested: ${item.quantity}`,
+        });
+        return;
+      }
+      subtotal += product.price * item.quantity;
+      orderItems.push({
+        product: product._id,
+        name: product.name,
+        quantity: item.quantity,
+        price: product.price,
+      });
+    }
+
+    const total = Math.round(subtotal * 100) / 100;
+
+    await Product.bulkWrite(
+      orderItems.map((item) => ({
+        updateOne: {
+          filter: { _id: item.product },
+          update: { $inc: { stock: -item.quantity } },
+        },
+      }))
+    );
+
+    const order = await Order.create({
+      user: req.user!._id,
+      items: orderItems,
+      shippingAddress: source.shippingAddress,
+      subtotal: total,
+      discount: 0,
+      total,
+      status: "pending",
+      statusHistory: [
+        { status: "pending", at: new Date(), note: `Reordered from order ${source.id}` },
+      ],
+    });
+
+    await invalidateProductCache([
+      ...PRODUCT_CACHE_PATTERNS,
+      ...orderItems.map((item) => `products:item:${item.product.toString()}`),
+    ]);
+
+    // Order confirmation email for the reordered order.
+    void notifyOrderCustomer(order.user.toString(), order, sendOrderConfirmationEmail);
+
+    res.status(201).json(order);
+  } catch (error) {
+    console.error("Error reordering:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// PATCH /api/admin/orders/:id/tracking — set/clear the carrier tracking number
+export const updateOrderTracking = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      res.status(404).json({ message: "Order not found" });
+      return;
+    }
+
+    const { trackingNumber } = req.body;
+    const value = typeof trackingNumber === "string" ? trackingNumber.trim() : "";
+    order.trackingNumber = value || undefined;
+
+    pushStatus(
+      order,
+      order.status,
+      value ? `Tracking number added: ${value}` : "Tracking number removed"
+    );
+    await order.save();
+
+    auditOrderChange(req, "order.tracking_updated", order.id, { trackingNumber: value });
+
+    res.json(order);
+  } catch (error) {
+    console.error("Error updating tracking:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -298,14 +543,43 @@ export const getAdminOrderById = async (req: AuthRequest, res: Response): Promis
 // GET /api/admin/stats — dashboard statistics (admin)
 export const getAdminStats = async (_req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const [totalProducts, totalOrders, lowStockProducts, revenueResult] = await Promise.all([
-      Product.countDocuments(),
-      Order.countDocuments(),
-      Product.countDocuments({ stock: { $lte: 5 } }),
-      Order.aggregate([
-        { $group: { _id: null, total: { $sum: "$total" } } },
-      ]),
-    ]);
+    const [totalProducts, totalOrders, lowStockProducts, revenueResult, recentOrders, topProductsResult, lowStockList] =
+      await Promise.all([
+        Product.countDocuments(),
+        Order.countDocuments(),
+        Product.countDocuments({ stock: { $lte: 5 } }),
+        Order.aggregate([
+          { $group: { _id: null, total: { $sum: "$total" } } },
+        ]),
+        Order.find()
+          .populate("user", "name email")
+          .sort({ createdAt: -1 })
+          .limit(5),
+        Order.aggregate([
+          { $match: { status: { $ne: "cancelled" } } },
+          { $unwind: "$items" },
+          {
+            $group: {
+              _id: "$items.name",
+              quantitySold: { $sum: "$items.quantity" },
+              revenue: { $sum: { $multiply: ["$items.quantity", "$items.price"] } },
+            },
+          },
+          { $sort: { quantitySold: -1, revenue: -1 } },
+          { $limit: 5 },
+          {
+            $project: {
+              name: "$_id",
+              quantitySold: 1,
+              revenue: 1,
+            },
+          },
+        ]),
+        Product.find({ stock: { $lte: 5 } })
+          .select("name stock imageUrl price")
+          .sort({ stock: 1 })
+          .limit(8),
+      ]);
 
     const totalRevenue = revenueResult[0]?.total ?? 0;
 
@@ -314,6 +588,29 @@ export const getAdminStats = async (_req: AuthRequest, res: Response): Promise<v
       totalOrders,
       lowStockProducts,
       totalRevenue,
+      recentOrders: recentOrders.map((order) => {
+        const customer = order.user as unknown as { name?: string; email?: string } | null;
+        return {
+          id: order.id,
+          customerName: customer?.name ?? "Unknown",
+          customerEmail: customer?.email ?? "",
+          total: order.total,
+          status: order.status,
+          createdAt: order.createdAt,
+        };
+      }),
+      topProducts: topProductsResult.map((entry) => ({
+        name: entry.name,
+        quantitySold: entry.quantitySold,
+        revenue: entry.revenue,
+      })),
+      lowStockList: lowStockList.map((product) => ({
+        id: product.id,
+        name: product.name,
+        stock: product.stock,
+        price: product.price,
+        imageUrl: product.imageUrl,
+      })),
     });
   } catch (error) {
     console.error("Error fetching admin stats:", error);

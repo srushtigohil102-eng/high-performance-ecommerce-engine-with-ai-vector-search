@@ -1,16 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useCart } from '../hooks/useCart'
+import { useWishlist } from '../hooks/useWishlist'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../hooks/useTheme'
 import SearchBar from './SearchBar'
+import Avatar from './Avatar'
 
 export default function Navbar() {
   const navigate = useNavigate()
   const { items } = useCart()
+  const { items: wishlistItems } = useWishlist()
   const { isAuthenticated, user, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0)
+  const wishlistCount = wishlistItems.length
   const [mobileOpen, setMobileOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [badgeBouncing, setBadgeBouncing] = useState(false)
@@ -159,9 +163,28 @@ export default function Navbar() {
               My Orders
             </NavLink>
           )}
+          <NavLink to="/wishlist" className={`${linkClass} flex items-center gap-1.5`}>
+            Wishlist
+            {wishlistCount > 0 && (
+              <span
+                className={`inline-flex items-center justify-center rounded-full bg-red-500 px-1.5 py-0.5 text-xs font-semibold text-white ${
+                  badgeBouncing ? 'animate-badge-bounce' : ''
+                }`}
+                aria-label={`${wishlistCount} items in wishlist`}
+              >
+                {wishlistCount}
+              </span>
+            )}
+          </NavLink>
           {isAuthenticated && user?.role === 'admin' && (
             <NavLink to="/admin" className={linkClass}>
               Admin
+            </NavLink>
+          )}
+          {isAuthenticated && (
+            <NavLink to="/account" className={`${linkClass} flex items-center gap-2`}>
+              <Avatar name={user?.name ?? 'Me'} size="sm" />
+              My Account
             </NavLink>
           )}
           {isAuthenticated ? (
@@ -225,9 +248,27 @@ export default function Navbar() {
               My Orders
             </NavLink>
           )}
+          <NavLink to="/wishlist" className="flex items-center justify-between rounded-lg px-4 py-3 text-sm font-medium text-text-secondary hover:bg-surface-elevated hover:text-text-primary" onClick={closeMobile}>
+            <span>Wishlist</span>
+            {wishlistCount > 0 && (
+              <span className={`inline-flex items-center justify-center rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white ${badgeBouncing ? 'animate-badge-bounce' : ''}`}>
+                {wishlistCount}
+              </span>
+            )}
+          </NavLink>
           {isAuthenticated && user?.role === 'admin' && (
             <NavLink to="/admin" className="rounded-lg px-4 py-3 text-sm font-medium text-text-secondary hover:bg-surface-elevated hover:text-text-primary" onClick={closeMobile}>
               Admin
+            </NavLink>
+          )}
+          {isAuthenticated && (
+            <NavLink
+              to="/account"
+              className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
+              onClick={closeMobile}
+            >
+              <Avatar name={user?.name ?? 'Me'} size="sm" />
+              My Account
             </NavLink>
           )}
           {isAuthenticated ? (

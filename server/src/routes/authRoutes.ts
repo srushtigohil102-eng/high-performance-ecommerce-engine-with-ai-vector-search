@@ -1,18 +1,27 @@
 import { Router } from "express";
-import { register, login, getMe } from "../controllers/authController";
+import {
+  register,
+  login,
+  getMe,
+  refresh,
+  logout,
+  forgotPassword,
+  resetPassword,
+  verifyEmail,
+  resendVerification,
+} from "../controllers/authController";
 import { authMiddleware } from "../middleware/authMiddleware";
-import { registerValidation, loginValidation } from "../middleware/validate";
-import rateLimit from "express-rate-limit";
+import {
+  registerValidation,
+  loginValidation,
+  forgotPasswordValidation,
+  resetPasswordValidation,
+  verifyEmailValidation,
+  resendVerificationValidation,
+} from "../middleware/validate";
+import { authLimiter, tokenLimiter } from "../middleware/rateLimiters";
 
 const router = Router();
-
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || "100", 10),
-  message: { message: "Too many attempts, please try again after 15 minutes" },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 // POST /api/auth/register
 router.post("/register", authLimiter, registerValidation, register);
@@ -22,5 +31,23 @@ router.post("/login", authLimiter, loginValidation, login);
 
 // GET /api/auth/me
 router.get("/me", authMiddleware, getMe);
+
+// POST /api/auth/refresh — new access token from httpOnly refresh cookie
+router.post("/refresh", tokenLimiter, refresh);
+
+// POST /api/auth/logout — invalidate refresh token + clear cookie
+router.post("/logout", logout);
+
+// POST /api/auth/forgot-password
+router.post("/forgot-password", tokenLimiter, forgotPasswordValidation, forgotPassword);
+
+// POST /api/auth/reset-password
+router.post("/reset-password", tokenLimiter, resetPasswordValidation, resetPassword);
+
+// GET /api/auth/verify-email?token=...&email=...
+router.get("/verify-email", tokenLimiter, verifyEmailValidation, verifyEmail);
+
+// POST /api/auth/resend-verification
+router.post("/resend-verification", tokenLimiter, resendVerificationValidation, resendVerification);
 
 export default router;

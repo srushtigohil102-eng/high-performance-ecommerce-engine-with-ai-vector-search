@@ -7,6 +7,10 @@
  *   - Results sorted by relevance score.
  *   - Enhanced with: query sanitization, multi-word OR fallback, Levenshtein
  *     distance typo-tolerant matching, and regex-based fuzzy partial-match.
+ *   - Discovery extras: faceted filters (category, price range, in-stock) and
+ *     sort options (relevance / price / rating / newest / name), live search
+ *     suggestions (GET /api/search/suggest) and trending searches recorded in
+ *     Redis (GET /api/search/trending).
  *   - Performance: < 20ms average on 73 products with cold cache.
  *   - THIS IS WHAT THE FINAL REVIEW DEMO USES.
  *
@@ -27,7 +31,23 @@ import { Product } from "../models/Product";
 import { getRedisClient } from "../config/redis";
 
 const CACHE_TTL = 300; // 5 min — same as product list cache
+const TRENDING_CACHE_TTL = 60; // trending list refreshes every minute
 const MAX_QUERY_LENGTH = 200;
+const TRENDING_SET = "search:trending";
+const TRENDING_LIMIT = 8;
+const TRENDING_MAX_SIZE = 100;
+const TRENDING_TTL = 7 * 24 * 60 * 60; // 7 days
+
+type SearchSort = "relevance" | "price-asc" | "price-desc" | "rating" | "newest" | "name";
+const VALID_SORTS: SearchSort[] = ["relevance", "price-asc", "price-desc", "rating", "newest", "name"];
+
+interface SearchFilters {
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
+  sort: SearchSort;
+}
 
 interface SearchResponse {
   products: unknown[];
@@ -36,6 +56,102 @@ interface SearchResponse {
   total: number;
   totalPages: number;
   searchMethod: "text" | "vector" | "regex" | "fuzzy" | "none";
+}
+
+interface ProductLike {
+  name: string;
+  category: string;
+  price: number;
+  stock: number;
+  rating: number;
+  createdAt: Date;
+}
+
+// ─── Filter / sort parsing ───────────────────────────────────────────────────
+
+function parseFilters(query: Record<string, unknown>): SearchFilters {
+  // Only string values are honoured — objectified params (after NoSQL
+  // sanitization) are treated as absent.
+  const category =
+    typeof query.category === "string" && query.category.trim().length > 0
+      ? query.category.slice(0, 60)
+      : undefined;
+
+  const minPriceRaw = parseFloat(typeof query.minPrice === "string" ? query.minPrice : "");
+  const maxPriceRaw = parseFloat(typeof query.maxPrice === "string" ? query.maxPrice : "");
+  const minPrice = Number.isFinite(minPriceRaw) && minPriceRaw >= 0 ? minPriceRaw : undefined;
+  const maxPrice = Number.isFinite(maxPriceRaw) && maxPriceRaw >= 0 ? maxPriceRaw : undefined;
+
+  const inStock = query.inStock === "true" || query.inStock === "1" || undefined;
+
+  const sortRaw = typeof query.sort === "string" ? query.sort : "relevance";
+  const sort: SearchSort = (VALID_SORTS as string[]).includes(sortRaw)
+    ? (sortRaw as SearchSort)
+    : "relevance";
+
+  return { category, minPrice, maxPrice, inStock, sort };
+}
+
+function filtersToMatch(filters: SearchFilters): Record<string, unknown> {
+  const match: Record<string, unknown> = {};
+  if (filters.category) match.category = filters.category;
+  if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+    const price: { $gte?: number; $lte?: number } = {};
+    if (filters.minPrice !== undefined) price.$gte = filters.minPrice;
+    if (filters.maxPrice !== undefined) price.$lte = filters.maxPrice;
+    match.price = price;
+  }
+  if (filters.inStock) match.stock = { $gt: 0 };
+  return match;
+}
+
+function docFiltersMatch(doc: ProductLike, filters: SearchFilters): boolean {
+  if (filters.category && doc.category !== filters.category) return false;
+  if (filters.minPrice !== undefined && doc.price < filters.minPrice) return false;
+  if (filters.maxPrice !== undefined && doc.price > filters.maxPrice) return false;
+  if (filters.inStock && !(doc.stock > 0)) return false;
+  return true;
+}
+
+function buildSortStage(sort: SearchSort): Record<string, 1 | -1> {
+  switch (sort) {
+    case "price-asc":
+      return { price: 1 };
+    case "price-desc":
+      return { price: -1 };
+    case "rating":
+      return { rating: -1 };
+    case "newest":
+      return { createdAt: -1 };
+    case "name":
+      return { name: 1 };
+    default:
+      return { score: -1 }; // relevance — requires $meta textScore field
+  }
+}
+
+function sortDocs(docs: ProductLike[], sort: SearchSort): ProductLike[] {
+  const arr = [...docs];
+  switch (sort) {
+    case "price-asc":
+      arr.sort((a, b) => a.price - b.price);
+      break;
+    case "price-desc":
+      arr.sort((a, b) => b.price - a.price);
+      break;
+    case "rating":
+      arr.sort((a, b) => b.rating - a.rating);
+      break;
+    case "newest":
+      arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      break;
+    case "name":
+      arr.sort((a, b) => a.name.localeCompare(b.name));
+      break;
+    default:
+      break; // relevance keeps the ranking the fallback strategy produced
+  }
+  return arr;
 }
 
 // ─── Query sanitization ──────────────────────────────────────────────────────
@@ -80,7 +196,7 @@ function levenshteinDistance(a: string, b: string): number {
 
 // ─── Regex-based fuzzy name search (for no-result fallback) ──────────────────
 
-async function regexNameSearch(term: string): Promise<unknown[]> {
+async function regexNameSearch(term: string): Promise<ProductLike[]> {
   // Create a case-insensitive regex that matches terms with up to 1 character
   // difference per word. For each word, we insert a dot '.' after each character
   // to allow arbitrary single-char insertions (basic fuzzy match via regex).
@@ -106,7 +222,7 @@ async function regexNameSearch(term: string): Promise<unknown[]> {
   const products = await Product.find({
     $or: [{ name: { $regex: regex } }, { category: { $regex: regex } }],
   })
-    .limit(20)
+    .limit(50)
     .sort({ stock: -1 });
 
   return products;
@@ -114,8 +230,24 @@ async function regexNameSearch(term: string): Promise<unknown[]> {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const buildSearchCacheKey = (q: string, page: number, limit: number): string =>
-  `search:q=${q}:p=${page}:l=${limit}`;
+const buildSearchCacheKey = (
+  q: string,
+  page: number,
+  limit: number,
+  filters: SearchFilters
+): string => {
+  const parts = [
+    q,
+    `p=${page}`,
+    `l=${limit}`,
+    filters.category ? `c=${encodeURIComponent(filters.category)}` : null,
+    filters.minPrice !== undefined ? `min=${filters.minPrice}` : null,
+    filters.maxPrice !== undefined ? `max=${filters.maxPrice}` : null,
+    filters.inStock ? "instock=1" : null,
+    filters.sort !== "relevance" ? `sort=${filters.sort}` : null,
+  ].filter(Boolean);
+  return `search:q=${parts.join(":")}`;
+};
 
 const tryGetCache = async (key: string): Promise<string | null> => {
   try {
@@ -125,9 +257,9 @@ const tryGetCache = async (key: string): Promise<string | null> => {
   }
 };
 
-const trySetCache = async (key: string, value: string): Promise<void> => {
+const trySetCache = async (key: string, value: string, ttl = CACHE_TTL): Promise<void> => {
   try {
-    await getRedisClient().setEx(key, CACHE_TTL, value);
+    await getRedisClient().setEx(key, ttl, value);
   } catch {
     // Redis down — not critical
   }
@@ -160,6 +292,26 @@ async function checkEmbeddingsExist(): Promise<boolean> {
   return embeddingsExistCache;
 }
 
+// ─── Trending search recording ───────────────────────────────────────────────
+
+async function recordTrending(query: string): Promise<void> {
+  const normalized = query.toLowerCase().trim().slice(0, 60);
+  if (!normalized) return;
+
+  try {
+    const redis = getRedisClient();
+    await redis.zIncrBy(TRENDING_SET, 1, normalized);
+    const size = await redis.zCard(TRENDING_SET);
+    if (size > TRENDING_MAX_SIZE) {
+      // Keep the top half of entries to avoid unbounded growth
+      await redis.zRemRangeByRank(TRENDING_SET, 0, size - TRENDING_MAX_SIZE / 2 - 1);
+    }
+    await redis.expire(TRENDING_SET, TRENDING_TTL);
+  } catch {
+    // Redis unavailable
+  }
+}
+
 // ─── LAYER 2: Vector search pipeline (scaffolded for Atlas) ──────────────────
 // Returns null if vector search fails (no embeddings, no Atlas index, API error)
 // so the caller always falls through to text search.
@@ -167,11 +319,14 @@ async function checkEmbeddingsExist(): Promise<boolean> {
 async function vectorSearch(
   query: string,
   page: number,
-  limit: number
+  limit: number,
+  filters: SearchFilters
 ): Promise<SearchResponse | null> {
   try {
     const queryEmbedding = await generateQueryEmbedding(query);
     if (!queryEmbedding) return null;
+
+    const filterMatch = filtersToMatch(filters);
 
     const pipeline: Record<string, unknown>[] = [
       {
@@ -184,11 +339,13 @@ async function vectorSearch(
           similarity: "cosine",
         },
       },
+      ...(Object.keys(filterMatch).length ? [{ $match: filterMatch }] : []),
       {
         $addFields: {
           score: { $meta: "vectorSearchScore" },
         },
       },
+      { $sort: buildSortStage(filters.sort) },
       { $project: { embedding: 0, __v: 0 } },
       { $addFields: { id: "$_id" } },
     ];
@@ -204,6 +361,7 @@ async function vectorSearch(
           similarity: "cosine",
         },
       },
+      ...(Object.keys(filterMatch).length ? [{ $match: filterMatch }] : []),
       { $count: "total" },
     ];
 
@@ -273,7 +431,8 @@ async function generateQueryEmbedding(query: string): Promise<number[] | null> {
 async function textSearch(
   query: string,
   page: number,
-  limit: number
+  limit: number,
+  filters: SearchFilters
 ): Promise<SearchResponse> {
   const skip = (page - 1) * limit;
 
@@ -285,14 +444,17 @@ async function textSearch(
     .replace(/\s+/g, " ")
     .trim();
 
+  const filterMatch = filtersToMatch(filters);
+
   const pipeline: Record<string, unknown>[] = [
     { $match: { $text: { $search: escapedQuery } } },
+    ...(Object.keys(filterMatch).length ? [{ $match: filterMatch }] : []),
     {
       $addFields: {
         score: { $meta: "textScore" },
       },
     },
-    { $sort: { score: -1 } },
+    { $sort: buildSortStage(filters.sort) },
     { $project: { score: 0, __v: 0 } },
     { $addFields: { id: "$_id" } },
   ];
@@ -323,10 +485,7 @@ async function textSearch(
 // names using Levenshtein distance (up to 2 edits). This catches typos and
 // transpositions like "headphonse" -> "headphones", "sneker" -> "sneakers".
 
-async function levenshteinFallback(query: string): Promise<{
-  products: unknown[];
-  searchMethod: "fuzzy";
-}> {
+async function levenshteinFallback(query: string): Promise<ProductLike[]> {
   const allNames = await Product.find({}).select("name").lean();
   const word = query.toLowerCase();
 
@@ -344,17 +503,42 @@ async function levenshteinFallback(query: string): Promise<{
     .sort((a, b) => a.score - b.score)
     .slice(0, 20);
 
-  if (scored.length === 0) return { products: [], searchMethod: "fuzzy" };
+  if (scored.length === 0) return [];
 
   const matchedIds = scored.map((s) => s._id);
   const products = await Product.find({ _id: { $in: matchedIds } });
   // Re-sort to match Levenshtein ranking
   const productMap = new Map(products.map((p) => [p._id.toString(), p]));
-  const sorted = scored
-    .map((s) => productMap.get(s._id.toString()))
-    .filter(Boolean);
+  const ranked: ProductLike[] = [];
+  for (const s of scored) {
+    const p = productMap.get(s._id.toString());
+    if (p) ranked.push(p as unknown as ProductLike);
+  }
+  return ranked;
+}
 
-  return { products: sorted, searchMethod: "fuzzy" };
+// ─── Shared fallback finalizer ─────────────────────────────────────────────
+// Applies filters + sort to in-memory fallback results and paginates.
+
+function finalizeFallback(
+  docs: ProductLike[],
+  page: number,
+  limit: number,
+  filters: SearchFilters,
+  searchMethod: "fuzzy" | "regex"
+): SearchResponse {
+  const filtered = docs.filter((d) => docFiltersMatch(d, filters));
+  const sorted = sortDocs(filtered, filters.sort);
+  const total = sorted.length;
+  const skip = (page - 1) * limit;
+  return {
+    products: sorted.slice(skip, skip + limit),
+    page,
+    limit,
+    total,
+    totalPages: Math.ceil(total / limit),
+    searchMethod,
+  };
 }
 
 // ─── Main handler: GET /api/search ──────────────────────────────────────────
@@ -364,9 +548,12 @@ export const searchProducts = async (
   res: Response
 ): Promise<void> => {
   try {
-    const rawQuery = (req.query.q as string || "").trim();
+    // Only a string query is meaningful; objectified query params (e.g. after
+    // NoSQL sanitization) are treated as "no query".
+    const rawQuery = typeof req.query.q === "string" ? (req.query.q as string).trim() : "";
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 12));
+    const filters = parseFilters(req.query as Record<string, unknown>);
 
     // Edge case: empty or whitespace-only query → return empty results.
     // The frontend handles this by showing "Enter a search term" UI, so it
@@ -398,7 +585,7 @@ export const searchProducts = async (
     }
 
     // Check Redis cache first
-    const cacheKey = buildSearchCacheKey(query, page, limit);
+    const cacheKey = buildSearchCacheKey(query, page, limit, filters);
     const cached = await tryGetCache(cacheKey);
     if (cached) {
       res.json(JSON.parse(cached));
@@ -410,7 +597,7 @@ export const searchProducts = async (
     // ── Text search (primary) ─────────────────────────────────────────
     // Vector search is scaffolded in vectorSearch() below but requires
     // Atlas + OpenAI embeddings — see header doc for activation steps.
-    result = await textSearch(query, page, limit);
+    result = await textSearch(query, page, limit, filters);
 
     // ── Fallback strategies for no-result queries ──────────────────────
     if (result.total === 0) {
@@ -421,10 +608,9 @@ export const searchProducts = async (
       // e.g. "warm jacket" no results → try "warm" OR "jacket"
       if (wordCount > 1) {
         const orQuery = words.join(" ");
-        const relaxedResult = await textSearch(orQuery, 1, limit);
+        const relaxedResult = await textSearch(orQuery, page, limit, filters);
         if (relaxedResult.total > 0) {
-          result = relaxedResult;
-          result.searchMethod = "text"; // still text search
+          result = { ...relaxedResult, searchMethod: "text" };
         }
       }
 
@@ -434,16 +620,10 @@ export const searchProducts = async (
       // Applied for queries 3-20 chars to avoid false-positive noise on
       // very short queries (e.g. "a" matches dozens of products via distance ≤2).
       if (result.total === 0 && query.length >= 3 && query.length <= 20) {
-        const fuzzyResult = await levenshteinFallback(query);
-        if (fuzzyResult.products.length > 0) {
-          result = {
-            products: fuzzyResult.products,
-            page: 1,
-            limit: fuzzyResult.products.length,
-            total: fuzzyResult.products.length,
-            totalPages: 1,
-            searchMethod: fuzzyResult.searchMethod,
-          };
+        const fuzzyDocs = await levenshteinFallback(query);
+        const fuzzyResult = finalizeFallback(fuzzyDocs, page, limit, filters, "fuzzy");
+        if (fuzzyResult.total > 0) {
+          result = fuzzyResult;
         }
       }
 
@@ -453,24 +633,125 @@ export const searchProducts = async (
       // like "electro" → "Electronics" or "blutooh" → "Bluetooth".
       // Minimum 4 chars to avoid false positives on very short queries.
       if (result.total === 0 && query.length >= 4) {
-        const regexProducts = await regexNameSearch(query);
-        if (regexProducts.length > 0) {
-          result = {
-            products: regexProducts,
-            page: 1,
-            limit: regexProducts.length,
-            total: regexProducts.length,
-            totalPages: 1,
-            searchMethod: "regex",
-          };
+        const regexDocs = await regexNameSearch(query);
+        const regexResult = finalizeFallback(regexDocs, page, limit, filters, "regex");
+        if (regexResult.total > 0) {
+          result = regexResult;
         }
       }
     }
+
+    if (result.total > 0) void recordTrending(query);
 
     await trySetCache(cacheKey, JSON.stringify(result));
     res.json(result);
   } catch (error) {
     console.error("Search error:", error);
     res.status(500).json({ message: "Search failed" });
+  }
+};
+
+// ─── Trending searches: GET /api/search/trending ────────────────────────────
+
+export const getTrendingSearches = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const cacheKey = "search:trending:list";
+    const cached = await tryGetCache(cacheKey);
+    if (cached) {
+      res.json(JSON.parse(cached));
+      return;
+    }
+
+    let terms: { term: string; count: number }[] = [];
+    try {
+      const raw = await getRedisClient().zRangeWithScores(
+        TRENDING_SET,
+        "0",
+        String(TRENDING_LIMIT - 1),
+        { REV: true }
+      );
+      terms = raw.map(({ score, value }) => ({
+        term: value,
+        count: Math.round(score),
+      }));
+    } catch {
+      // Redis unavailable → empty trending list
+    }
+
+    const result = { terms };
+    await trySetCache(cacheKey, JSON.stringify(result), TRENDING_CACHE_TTL);
+    res.json(result);
+  } catch (error) {
+    console.error("Trending search error:", error);
+    res.status(500).json({ message: "Failed to load trending searches" });
+  }
+};
+
+// ─── Search suggestions: GET /api/search/suggest?q=… ────────────────────────
+
+export const suggestProducts = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const raw = typeof req.query.q === "string" ? (req.query.q as string) : "";
+    const q = raw.trim().slice(0, 40);
+
+    if (!q) {
+      res.json({ queries: [], products: [], categories: [] });
+      return;
+    }
+
+    const cacheKey = `suggest:q=${q}`;
+    const cached = await tryGetCache(cacheKey);
+    if (cached) {
+      res.json(JSON.parse(cached));
+      return;
+    }
+
+    // Escape regex metacharacters so the user input is treated literally.
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const regex = new RegExp(escaped, "i");
+
+    const [productDocs, categoryAgg] = await Promise.all([
+      Product.find({
+        $or: [{ name: { $regex: regex } }, { category: { $regex: regex } }],
+      })
+        .select("name category price imageUrl")
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+      Product.aggregate([
+        {
+          $match: {
+            $or: [{ name: { $regex: regex } }, { category: { $regex: regex } }],
+          },
+        },
+        { $group: { _id: "$category", count: { $sum: 1 } } },
+        { $sort: { count: -1, _id: 1 } },
+        { $limit: 4 },
+      ]),
+    ]);
+
+    const result = {
+      queries: productDocs.map((p) => p.name),
+      products: productDocs.map((p) => ({
+        id: p._id.toString(),
+        name: p.name,
+        category: p.category,
+        price: p.price,
+        imageUrl: p.imageUrl,
+      })),
+      categories: categoryAgg.map((c) => ({ name: c._id, count: c.count })),
+    };
+
+    await trySetCache(cacheKey, JSON.stringify(result));
+    res.json(result);
+  } catch (error) {
+    console.error("Search suggest error:", error);
+    res.status(500).json({ message: "Failed to load suggestions" });
   }
 };
